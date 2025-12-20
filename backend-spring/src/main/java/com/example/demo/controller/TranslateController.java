@@ -1,0 +1,61 @@
+package com.example.demo.controller;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.example.demo.dto.TranslateResponse;
+import com.example.demo.dto.TranslationLog;
+import com.example.demo.service.TranslateResponseService;
+
+@RestController
+@CrossOrigin(origins = "http://localhost:5173")
+public class TranslateController {
+	//파이썬 연결
+	private final WebClient webClient = WebClient.create("http://127.0.0.1:8000");
+	private final TranslateResponseService translateResponseService;
+	
+	public TranslateController(TranslateResponseService translateResponseService) {
+		this.translateResponseService = translateResponseService;
+	}
+	
+    @PostMapping("/api/translate")
+    public TranslateResponse translate(@RequestBody Map<String, Object> body) {
+    	
+		TranslateResponse res = webClient.post()
+    				.uri("/predict")
+    				.bodyValue(body)
+    				.retrieve()
+    				.bodyToMono(TranslateResponse.class)
+    				.timeout(Duration.ofSeconds(3))
+    				.onErrorReturn(new TranslateResponse("번역 실패", 0.0, 0))
+    				.block();
+    		
+    		if(res == null) {
+    			res = new TranslateResponse("번역 실패", 0.0, 0);
+    		}
+    		double conf = Math.max(0.0, Math.min(1.0, res.getConfidence()));
+            res.setConfidence(conf);
+			
+    	this.translateResponseService.save(res.getText(), res.getConfidence());
+    	
+    	return res;
+    }
+    
+    //디비 조회하기 귀찮으니 만드는 거
+    @GetMapping("api/translation-log")
+    public List<TranslationLog> recent(@RequestParam(defaultValue = "10") int limit) {
+    	if(limit < 1) limit = 1;
+    	if(limit > 100) limit = 100;
+    	
+    	return translateResponseService.findRecent(limit);
+    }
+}

@@ -93,6 +93,11 @@
          <groupId>org.glassfish.web</groupId>
          <artifactId>jakarta.servlet.jsp.jstl</artifactId>
       </dependency>
+      <!-- 파이썬 연결 -->
+      <dependency>
+		 <groupId>org.springframework.boot</groupId>
+		 <artifactId>spring-boot-starter-webflux</artifactId>
+	  </dependency>
    </dependencies>
 
    <build>

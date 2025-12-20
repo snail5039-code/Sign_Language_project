@@ -1,1 +1,12 @@
 /.metadata/
+
+# python venv
+.venv/
+venv/
+
+# python cache
+__pycache__/
+*.pyc
+
+# node
+node_modules/

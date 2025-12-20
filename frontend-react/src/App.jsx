@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Test from "./pages/Test.jsx";
 import Camera from "./pages/Camera.jsx";
+import TranslationLogPanel from "./components/TranslationLogPanel.jsx";
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
       <Route path="/Home" element={<Home />} />
       <Route path="/test" element={<Test />} />
       <Route path="/camera" element={<Camera />} />
+      <Route path="/translationLogPanel" element={<TranslationLogPanel />} />
     </Routes>
   );
 }

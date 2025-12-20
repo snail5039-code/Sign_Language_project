@@ -10,6 +10,7 @@ export default function Home() {
       <ul>
         <li><Link to="/test">서버 연결 테스트</Link></li>
         <li><Link to="/camera">카메라</Link></li>
+        <li><Link to="/translationLogPanel">번역 로그(개발참고)</Link></li>
         {/*나중에 추가 해야함*/}
       </ul>
     </div>
