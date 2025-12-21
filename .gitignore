@@ -15,3 +15,16 @@ node_modules/
 # Logs / OS
 *.log
 .DS_Store
+
+# AI datasets (big)
+ai-server/dataset_raw/
+ai-server/dataset_split/
+ai-server/dataset_split_tiny/
+ai-server/dataset_split_small/
+ai-server/dataset_npy/
+ai-server/dataset_raw_small/
+ai-server/dataset_raw_tiny/
+
+# optional: other generated stuff
+ai-server/__pycache__/
+ai-server/*.log
