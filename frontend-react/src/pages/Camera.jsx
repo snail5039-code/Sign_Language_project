@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Hands } from "@mediapipe/hands";
+import { FaceMesh } from "@mediapipe/face_mesh";
 import { Camera as MPCamera } from "@mediapipe/camera_utils";
 import axios from "axios";
 
@@ -13,6 +14,8 @@ export default function Camera() {
   const latestLandmarksRef = useRef(null);
   const handsRef = useRef(null); // 손 인식 엔진 저장 상자
   const mpCameraRef = useRef(null); // 미디어 파이프 카메라 보관
+  const faceMeshRef = useRef(null);              // 얼굴 인식 엔진 저장
+  const latestFaceLandmarksRef = useRef(null);   // 최신 얼굴 랜드마크 저장
   const [handDetected, setHandDetected] = useState(false); // 화면 표시용 손이 있나 없나 표시
   const [handCount, setHandCount] = useState(0);
   const [lrStatus, setLrStatus] = useState("없음");
@@ -26,6 +29,8 @@ export default function Camera() {
   const [lastWord, setLastWord] = useState("");
   const [stableWord, setStableWord] = useState("");
   const [stableCount, setStableCount] = useState(0);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [faceCount, setFaceCount] = useState(0);
 
   useEffect(() => {
     const start = async () => {
@@ -65,10 +70,38 @@ export default function Camera() {
             setHandDetected(handsLm.length > 0);
             setHandCount(handsLm.length);
           });
+
+          const faceMesh = new FaceMesh({
+            locateFile: (file) =>
+              `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+          });
+
+          faceMeshRef.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+          });
+
+          FaceMesh.onResults((results) => {
+            const faces = results.multiFaceLandmarks ?? [];
+            latestFaceLandmarksRef.current = faces; //faces[0] 얼굴1개 랜드마크
+
+            setFaceDetected(faces.length > 0);
+            setFaceCount(faces.length);
+          });
+
+          faceMeshRef.current = faceMesh;
+
           // 감지한 손 찍은거 저장하고 보내는거!
           const mpCam = new MPCamera(videoRef.current, {
             onFrame: async () => {
-              await hands.send({ image: videoRef.current });
+              const image = videoRef.current;
+              await hands.send({image});
+              
+              if (faceMeshRef.current) {
+                await faceMeshRef.current.send({image});
+              }
             },
             width: 480,
             height: 360,
@@ -89,6 +122,7 @@ export default function Camera() {
     return () => {
       if (mpCameraRef.current) mpCameraRef.current.stop();
       if (handsRef.current) handsRef.current.close();
+      if (faceMeshRef.current) faceMeshRef.current.close(); // 끌때 페이스메시도 클로즈 해주기추가
 
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
@@ -101,6 +135,13 @@ export default function Camera() {
 
     const intervalId = setInterval(() => {
       const latest = latestLandmarksRef.current;
+      const faces = latestFaceLandmarksRef.current ?? [];
+      const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
+      
+      const face = face0
+        ?face0.map((p) => ({ x: p.x, y: p.y, z: p.z}))
+        : [];
+      
       if (!latest || !latest.handsLm || latest.handsLm.length === 0) return;
 
       const { handsLm, handed } = latest;
@@ -117,8 +158,8 @@ export default function Camera() {
         handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z }));
       }
 
-      const frame = { t: Date.now(), hands: handsFixed };
-
+      const frame = { t: Date.now(), hands: handsFixed, face}; // face 추가함
+      
       bufferRef.current.push(frame);
       setFrameCount(bufferRef.current.length);
     }, 100);
@@ -257,16 +298,14 @@ export default function Camera() {
                 카메라 화면
               </div>
               <span
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                  recording
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${recording
                     ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
                     : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"
-                }`}
+                  }`}
               >
                 <span
-                  className={`h-2 w-2 rounded-full ${
-                    recording ? "bg-rose-500" : "bg-slate-400"
-                  }`}
+                  className={`h-2 w-2 rounded-full ${recording ? "bg-rose-500" : "bg-slate-400"
+                    }`}
                 />
                 상태: {recording ? "저장중..." : "대기중"}
               </span>
@@ -314,10 +353,11 @@ export default function Camera() {
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                <p className="text-xs font-semibold text-slate-500">손 감지</p>
                 <p className="mt-1 text-lg font-black text-slate-900">
-                  {handDetected ? "✅ 감지됨" : "❌ 없음"}
+                  <p>손 감지: <span>{handDetected ? "✅ 감지됨" : "❌ 없음"}</span></p>
                 </p>
+                <p className="text-sm">얼굴 감지: <span className="font-semibold">{faceDetected? "✅ 감지됨" : "❌ 없음"}</span></p>
+                <p className="text-sm">얼굴 개수: <span className="font-semibold">{faceCount}</span></p>
               </div>
             </div>
           </div>
