@@ -76,14 +76,14 @@ export default function Camera() {
               `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
           });
 
-          faceMeshRef.setOptions({
+          faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5,
           });
 
-          FaceMesh.onResults((results) => {
+          faceMesh.onResults((results) => {
             const faces = results.multiFaceLandmarks ?? [];
             latestFaceLandmarksRef.current = faces; //faces[0] 얼굴1개 랜드마크
 
@@ -138,32 +138,40 @@ export default function Camera() {
       const faces = latestFaceLandmarksRef.current ?? [];
       const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
       
-      const face = face0
-        ?face0.map((p) => ({ x: p.x, y: p.y, z: p.z}))
-        : [];
-      
-      if (!latest || !latest.handsLm || latest.handsLm.length === 0) return;
+      const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z})) : [];
 
-      const { handsLm, handed } = latest;
+      const hasFace = face.length > 0;
+      const hasHands = (latest?.handsLm?.length ?? 0) > 0; // hasHands 변수 추가해버림
+      
+      if (!hasHands && !hasFace) return;
+
+      // const { handsLm, handed } = latest;
+
+      // if (latest?.handsLm?.length) {
+      //   const {handsLm, handed} = latest;
+      // }
       // 항상 [Left, Right] 순서로 고정
       const handsFixed = [[], []]; // 1: Left, 0: Right
-      for (let i = 0; i < handsLm.length; i++) {
-        // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
-        const label =
-          handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
 
-        const idx = label === "Left" ? 1 : 0;
+      if (hasHands) {
+        const {handsLm, handed} = latest;
 
-        // landmarks -> {x,y,z} 형태로 변환
-        handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z }));
+        for (let i = 0; i < handsLm.length; i++) {
+           // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
+          const label = handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
+           
+          const idx = label === "Left" ? 1 : 0;
+          
+          // landmarks -> {x,y,z} 형태로 변환
+          handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z}));
+        }
       }
-
-      const frame = { t: Date.now(), hands: handsFixed, face}; // face 추가함
       
+      const frame = { t: Date.now(), hands: handsFixed, face }; // face 추가!!!
       bufferRef.current.push(frame);
       setFrameCount(bufferRef.current.length);
     }, 100);
-
+    
     return () => clearInterval(intervalId);
   }, [recording]);
 
@@ -187,12 +195,13 @@ export default function Camera() {
     setSavedPayload(payload);
 
     const framesForServer = bufferRef.current
-      .filter((f) => f.hands && f.hands.length > 0)
+      .filter((f) => f.hands && f.hands.length > 0 || (f.face && f.face.length > 0))
       .map((f) => ({
         t: f.t,
-        hands: f.hands.map((hand) =>
-          hand.map((p) => ({ x: p.x, y: p.y, z: p.z }))
+        hands: (f.hands ?? [[], []]).map((hand) =>
+          (hand ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z }))
         ),
+        face: (f.face ?? []).map((p) => ({ x: p.x, y: p.y, z:p.z})),
       }));
 
     try {
@@ -411,13 +420,20 @@ export default function Camera() {
             </h3>
             <pre className="mt-3 max-h-72 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
               {JSON.stringify(
-                { ...savedPayload, frames: savedPayload.frames.slice(0, 5) },
+                { ...savedPayload, frames: savedPayload.frames.slice(0, 5).map((f) => ({
+                  t: f.t,
+                  hands: f.hands,
+
+                  faceLen: f.face?.length ?? 0,
+                  faceSample: (f.face ?? []).slice(0, 10),
+                })) 
+              },
                 null,
                 2
               )}
             </pre>
             <p className="mt-2 text-xs text-slate-500">
-              (frames는 너무 길어서 앞 5개만 보여주는 중)
+              (frames는 너무 길어서 앞 5개만, face는 샘플 10개만)
             </p>
           </div>
         )}
