@@ -143,7 +143,7 @@ export default function Camera() {
       const hasFace = face.length > 0;
       const hasHands = (latest?.handsLm?.length ?? 0) > 0; // hasHands 변수 추가해버림
       
-      if (!hasHands && !hasFace) return;
+      if (!hasHands) return;
 
       // const { handsLm, handed } = latest;
 
@@ -151,7 +151,7 @@ export default function Camera() {
       //   const {handsLm, handed} = latest;
       // }
       // 항상 [Left, Right] 순서로 고정
-      const handsFixed = [[], []]; // 1: Left, 0: Right
+      const handsFixed = [[], []]; // 1: Right, 0: Left
 
       if (hasHands) {
         const {handsLm, handed} = latest;
@@ -195,7 +195,9 @@ export default function Camera() {
     setSavedPayload(payload);
 
     const framesForServer = bufferRef.current
-      .filter((f) => f.hands && f.hands.length > 0 || (f.face && f.face.length > 0))
+      
+      //.filter((f) => f.hands && f.hands.length > 0 || (f.face && f.face.length > 0))
+      .filter((f) => (f.hands?.some((h) => h?.length > 0 )))
       .map((f) => ({
         t: f.t,
         hands: (f.hands ?? [[], []]).map((hand) =>
@@ -246,15 +248,15 @@ export default function Camera() {
   // 테스트임!! 샘플!!
   const sendSample = async () => {
     const sample = {
-      frames: [
-        {
-          hands: [
-            Array.from({ length: 21 }, () => ({ x: 0.1, y: 0.1, z: 0.0 })),
-          ],
-        },
-      ],
+      frames: [{
+        hands: [
+          Array.from({ length: 21 }, () => ({ x: 0.1, y: 0.1, z: 0.0})),
+          [],
+        ],
+        face: []
+      }]
     };
-
+    
     try {
       const res = await axios.post("/api/translate", sample);
       console.log("샘플 응답:", res.data);
