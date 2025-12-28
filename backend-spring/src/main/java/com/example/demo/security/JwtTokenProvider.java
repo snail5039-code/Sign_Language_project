@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+
 @Component
 public class JwtTokenProvider {
 
