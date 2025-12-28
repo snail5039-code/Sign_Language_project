@@ -41,6 +41,7 @@ export default function Camera() {
         });
 
         streamRef.current = stream; // 나중에 끄려고 저장해논거임
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream; //srcObject 카메라에서 받아온 영상 넣어주는거
 
@@ -135,14 +136,20 @@ export default function Camera() {
 
     const intervalId = setInterval(() => {
       const latest = latestLandmarksRef.current;
+
+      // 손 정보 안전하게 꺼내기
+      const handsLm = latest?.handsLm ?? [];
+      const handed = latest?.handed ?? [];
+
       const faces = latestFaceLandmarksRef.current ?? [];
       const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
-      
       const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z})) : [];
 
       const hasFace = face.length > 0;
-      const hasHands = (latest?.handsLm?.length ?? 0) > 0; // hasHands 변수 추가해버림
+      const hasHands = handsLm.length > 0;
 
+      if (!hasHands && !hasFace) return;
+      
       // const { handsLm, handed } = latest;
 
       // if (latest?.handsLm?.length) {
@@ -151,9 +158,7 @@ export default function Camera() {
       // 항상 [Left, Right] 순서로 고정
       const handsFixed = [[], []]; // 1: Right, 0: Left
 
-      if (hasHands && latest) {
-        const {handsLm, handed} = latest;
-
+      if (hasHands) {
         for (let i = 0; i < handsLm.length; i++) {
            // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
           const label = handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
@@ -164,10 +169,7 @@ export default function Camera() {
           handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z}));
         }
       }
-      if (!hasFace && !hasHands) return;
-      
-      const frame = { t: Date.now(), hands: handsFixed, face }; // face 추가!!!
-      bufferRef.current.push(frame);
+      bufferRef.current.push({ t: Date.now(), hands: handsFixed, face});
       setFrameCount(bufferRef.current.length);
     }, 100);
     
