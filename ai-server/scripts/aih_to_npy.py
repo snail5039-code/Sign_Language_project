@@ -9,7 +9,11 @@ T = 30
 POINTS = 21 #손 랜드마크 점 
 # 파일 일기
 def load_json(p: Path):
-    return json.loads(p.read_text(encoding="utf-8"))
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[BAD JSON] {p} -> {type(e).__name__}: {e}")
+        return None
 
 def hand_keypoints_to_21x3(hand_kps):
     out = np.zeros((POINTS, 3), dtype=np.float32) # 0 0 0 빈 그릇 생성
@@ -72,10 +76,23 @@ def folder_to_sample(folder: Path):
     frames = []
     for fp in json_files:
         j = load_json(fp)
+<<<<<<< Updated upstream
         ft = one_frame_json_to_tensor(j)  # ✅ 여기 이름 정확히!
 
         if ft.sum() == 0:
             continue
+=======
+        if j is None:
+            continue
+        iterable = j.get("frames") if isinstance(j, dict) and isinstance(j.get("frames"),list) else [j] # payload(frames배열)도 지원하게
+        
+        for fr in iterable:
+            ft_hand = one_frame_json_to_tensor(fr)  # ✅ 여기 이름 정확히!
+            ft_face = one_frame_json_to_face_tensor(fr)
+        
+            if ft_hand.sum() == 0 and ft_face.sum() == 0:
+                continue
+>>>>>>> Stashed changes
 
         frames.append(ft)
 
@@ -92,7 +109,7 @@ def folder_to_sample(folder: Path):
 
 def extract_word_id(folder_name: str):
     for part in folder_name.split("_"):
-        if part.startswith("WORD"):
+        if part.startswith("WORD") or part.startswith("SEN"):
             return part
     return "UNKNOWN"
 
