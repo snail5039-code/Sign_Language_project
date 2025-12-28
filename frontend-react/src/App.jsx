@@ -9,6 +9,8 @@ import BoardModify from "./pages/board/BoardModify.jsx";
 import Join from "./pages/member/Join.jsx";
 import Login from "./pages/member/Login.jsx";
 import Logout from "./pages/member/Logout.jsx";
+import ProtectedRoute from "./auth/ProtectedRoute.jsx";
+import PostWrite from "./pages/board/PostWrite.jsx";
 
 export default function App() {
   return (
@@ -32,6 +34,13 @@ export default function App() {
       <Route path="/join" element={<Join />} />
       <Route path="/login" element={<Login />} />
       <Route path="/logout" element={<Logout />} />
+
+      <Route path="/posts/new" element={
+      <ProtectedRoute>
+        <PostWrite />
+      </ProtectedRoute>
+      } />
+      <Route path="/board" element={<Board />} />
       
 
       

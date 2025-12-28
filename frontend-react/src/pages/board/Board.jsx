@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import BoardHeader from "../../components/layout/BoardHeader";
 import BoardWrite from "./BoardWrite";
 import { BOARD_TYPES } from "./BoardTypes";
+import { api } from "../../api/client";
 
 export default function Board() {
   const [boardId, setBoardId] = useState(2);
@@ -23,11 +23,12 @@ export default function Board() {
       setLoading(true);
       setErrorMsg("");
 
-      const res = await axios.get("/api/boards", { params: { boardId } });
+      const res = await api.get("/api/boards", { params: { boardId } });
       setBoards(res.data);
     } catch (e) {
       console.error(e);
-      setErrorMsg("목록 불러오기 실패. / 백엔드, DB 확인");
+      if (e?.response?.status === 401) setErrorMsg("로그인이 필요합니다.");
+      else setErrorMsg("목록 불러오기 실패. / 백엔드, DB 확인");
     } finally {
       setLoading(false);
     }
@@ -37,13 +38,18 @@ export default function Board() {
     fetchBoards();
   }, [boardId]);
 
+  // 백이 필터링 안 해줘도 프론트에서 한번 더 필터링 (안전장치)
+  const visibleBoards = useMemo(() => {
+    return (boards ?? []).filter((b) => {
+      const bid = b.boardId ?? b.boardTypeId; // 백 필드명에 맞춰
+      return Number(bid) === Number(boardId) || bid == null; 
+      // bid가 아예 없으면 일단 그대로 보여주게 처리
+    });
+  }, [boards, boardId]);
+
   return (
     <>
-      <BoardHeader
-        boardId={boardId}
-        setBoardId={setBoardId}
-        title={title}
-      />
+      <BoardHeader boardId={boardId} setBoardId={setBoardId} title={title} />
 
       <div className="max-w-4xl mx-auto p-6">
         <BoardWrite boardId={boardId} onSuccess={fetchBoards} />
@@ -57,17 +63,26 @@ export default function Board() {
         <ul className="border rounded-2xl divide-y mt-6 bg-white">
           {loading ? (
             <li className="p-10 text-center text-gray-500">불러오는 중...</li>
-          ) : boards.length === 0 ? (
+          ) : visibleBoards.length === 0 ? (
             <li className="p-10 text-center text-gray-500">아직 글이 없음</li>
           ) : (
-            boards.map((board) => (
+            visibleBoards.map((board) => (
               <li
                 key={board.id}
                 className="p-4 hover:bg-gray-50 cursor-pointer"
                 onClick={() => nav(`/board/${board.id}`)}
               >
                 <div className="font-medium">{board.title}</div>
-                <div className="text-sm text-gray-500 flex gap-4 mt-1">
+
+                <div className="text-sm text-gray-500 flex flex-wrap gap-4 mt-1">
+                  {/* 게시판명 표시(선택) */}
+                  <span>게시판: {title}</span>
+
+                  {/* 작성자 표시 */}
+                  <span>
+                    작성자: {board.author?.nickname ?? board.authorNickname ?? "알 수 없음"}
+                  </span>
+
                   <span>작성일: {board.regDate}</span>
                   <span>수정일: {board.updateDate}</span>
                 </div>
