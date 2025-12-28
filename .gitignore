@@ -73,6 +73,11 @@ ai-server/dataset_npy/
 ai-server/dataset_top50_raw/
 ai-server/dataset_top50_split/
 
+ai-server/_mini_raw/
+ai-server/_mini_split/
+ai-server/_mini_npy/
+*.npy
+
 # =========================
 # AI generated / runs (optional)
 # =========================
