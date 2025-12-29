@@ -136,22 +136,6 @@ export default function Camera() {
 
     const intervalId = setInterval(() => {
       const latest = latestLandmarksRef.current;
-
-      // 손 정보 안전하게 꺼내기
-      const handsLm = latest?.handsLm ?? [];
-      const handed = latest?.handed ?? [];
-
-      const faces = latestFaceLandmarksRef.current ?? [];
-      const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
-      const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z})) : [];
-
-      const hasFace = face.length > 0;
-      const hasHands = handsLm.length > 0;
-
-      if (!hasHands && !hasFace) return;
-      
-      // const { handsLm, handed } = latest;
-
       // if (latest?.handsLm?.length) {
       //   const {handsLm, handed} = latest;
       // }
@@ -169,7 +153,6 @@ export default function Camera() {
           handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z}));
         }
       }
-      bufferRef.current.push({ t: Date.now(), hands: handsFixed, face});
       setFrameCount(bufferRef.current.length);
     }, 100);
     
