@@ -24,7 +24,7 @@ export default function BoardModify() {
       nav(`/boards/${id}`);
     } catch (e) {
       console.error(e);
-      alert("수정 실패. 백엔드 확인해봐!");
+      alert("수정 실패. 백엔드 확인");
     } finally {
       setLoading(false);
     }

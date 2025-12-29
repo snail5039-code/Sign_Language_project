@@ -3,7 +3,7 @@ import Home from "./pages/Home.jsx";
 import Test from "./pages/Test.jsx";
 import Camera from "./pages/Camera.jsx";
 import TranslationLogPanel from "./components/TranslationLogPanel.jsx";
-import Board from "./pages/board/Board.jsx";
+import Board from "./pages/board/board.jsx";
 import BoardDetail from "./pages/board/BoardDetail.jsx";
 import BoardModify from "./pages/board/BoardModify.jsx";
 import Join from "./pages/member/Join.jsx";
@@ -11,8 +11,12 @@ import Login from "./pages/member/Login.jsx";
 import Logout from "./pages/member/Logout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import PostWrite from "./pages/board/PostWrite.jsx";
+import { useAuth } from "./auth/AuthProvider";
+
 
 export default function App() {
+  const { isAuthLoading } = useAuth();
+  if (isAuthLoading) return null;
   return (
     <Routes>
       <Route path="/" element={<Home />} />

@@ -33,12 +33,12 @@ export default function PostWrite() {
     if (msg) return setErr(msg);
 
     try {
-      await api.post("/api/posts", {
+      await api.post("/api/boards", {
         title: title.trim(),
         content: content.trim(),
         // author는 보내지 마!
       });
-      nav("/posts");
+      nav("/boards");
     } catch (e2) {
       setErr(e2?.response?.data?.message || "등록 실패");
     }
@@ -49,7 +49,7 @@ export default function PostWrite() {
       <h2>글쓰기</h2>
 
       <div style={{ marginBottom: 10, fontSize: 13, opacity: 0.8 }}>
-        작성자: {user?.nickname ?? user?.sub ?? "로그인 사용자"}
+        작성자: {user?.loginId ?? user?.sub ?? "로그인 사용자"}
       </div>
 
       <form onSubmit={onSubmit}>

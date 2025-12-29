@@ -6,8 +6,8 @@ import SocialLoginButtons from "./SocialLoginButtons";
 
 
 export default function Login() {
-  const [username, setUsername] = useState(""); // 아이디
-  const [password, setPassword] = useState(""); // 비번
+  const [loginId, setLoginId] = useState(""); // 아이디
+  const [loginPw, setLoginPw] = useState(""); // 비번
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,19 +18,19 @@ export default function Login() {
     e.preventDefault();
     setErrorMsg("");
 
-    const u = username.trim();
-    const p = password.trim();
+    const i = loginId.trim();
+    const p = loginPw.trim();
 
-    if (!u) return setErrorMsg("아이디 입력");
-    if (!p) return setErrorMsg("비밀번호 입력해");
+    if (!i) return setErrorMsg("아이디 입력");
+    if (!p) return setErrorMsg("비밀번호 입력");
 
     try {
       setLoading(true);
 
       // 엔드포인트/필드명은 백에 맞춰서 수정
       const res = await api.post("/api/members/login", {
-        username: u,
-        password: p,
+        loginId: l,
+        loginPw: p,
       });
 
       // 예: { accessToken: "..." }
@@ -39,7 +39,7 @@ export default function Login() {
       nav("/board"); // 로그인 후 이동할 페이지
     } catch (e2) {
       const status = e2?.response?.status;
-      if (status === 401) setErrorMsg("아이디/비밀번호가 틀렸어.");
+      if (status === 401) setErrorMsg("아이디/비밀번호가 틀림");
       else setErrorMsg(e2?.response?.data?.message || "로그인 실패");
     } finally {
       setLoading(false);
@@ -50,17 +50,14 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-sm bg-white border rounded-2xl p-6 shadow-sm">
         <h1 className="text-xl font-semibold">로그인</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          아이디와 비밀번호만 입력
-        </p>
 
         <form className="mt-5 space-y-3" onSubmit={onSubmit}>
           <div>
             <label className="text-sm text-gray-700">아이디</label>
             <input
               className="mt-1 w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-200"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
               placeholder="아이디"
               disabled={loading}
               autoFocus
@@ -71,8 +68,8 @@ export default function Login() {
             <label className="text-sm text-gray-700">비밀번호</label>
             <input
               className="mt-1 w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-200"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={loginPw}
+              onChange={(e) => setLoginPw(e.target.value)}
               placeholder="비밀번호"
               type="password"
               disabled={loading}

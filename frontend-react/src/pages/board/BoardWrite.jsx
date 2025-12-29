@@ -11,9 +11,9 @@ export default function BoardWrite({ boardId, onSuccess }) {
     const t = title.trim();
     const c = content.trim();
 
-    // ✅ 공백 검증
-    if (!t) return setErrorMsg("제목을 입력해줘.");
-    if (!c) return setErrorMsg("내용을 입력해줘.");
+    // 공백 검증
+    if (!t) return setErrorMsg("제목을 입력.");
+    if (!c) return setErrorMsg("내용을 입력.");
     if (t.length < 2) return setErrorMsg("제목은 2글자 이상!");
     if (c.length < 5) return setErrorMsg("내용은 5글자 이상!");
 
@@ -21,7 +21,7 @@ export default function BoardWrite({ boardId, onSuccess }) {
       setLoading(true);
       setErrorMsg("");
 
-      // ✅ axios.post -> api.post (토큰 자동 첨부)
+      // axios.post -> api.post (토큰 자동 첨부)
       await api.post("/api/boards", {
         boardId: Number(boardId),
         title: t,

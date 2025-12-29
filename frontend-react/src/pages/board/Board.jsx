@@ -80,11 +80,11 @@ export default function Board() {
 
                   {/* 작성자 표시 */}
                   <span>
-                    작성자: {board.author?.nickname ?? board.authorNickname ?? "알 수 없음"}
+                    작성자: {board.author?.loginId ?? board.authorLoginId ?? "알 수 없음"}
                   </span>
 
-                  <span>작성일: {board.regDate}</span>
-                  <span>수정일: {board.updateDate}</span>
+                  <span>작성일: {article.regDate}</span>
+                  <span>수정일: {article.updateDate}</span>
                 </div>
               </li>
             ))

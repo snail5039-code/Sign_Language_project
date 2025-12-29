@@ -65,6 +65,12 @@ export default function BoardDetail() {
         <button className="mt-6 px-4 py-2 rounded-xl border" onClick={() => nav("/board")}>
           목록
         </button>
+        <button className="mt-6 px-4 py-2 rounded-xl border" onClick={() => nav("/modify")}>
+          수정
+        </button>
+        <button className="mt-6 px-4 py-2 rounded-xl border" onClick={() => nav("/delete")}>
+          삭제
+        </button>
       </div>
     </div>
   );
