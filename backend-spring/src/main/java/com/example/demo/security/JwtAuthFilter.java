@@ -32,6 +32,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception e) {
                 // 토큰이 이상하면 그냥 인증 없이 통과(보호 API에서 401 뜸)
+                e.printStackTrace(); // ✅ 지금은 조용히 삼키지 말고 이유 확인
+                System.out.println("[JwtAuthFilter] " + req.getMethod() + " " + req.getRequestURI());
+                System.out.println("[JwtAuthFilter] Authorization=" + req.getHeader("Authorization"));
+
+
             }
         }
         chain.doFilter(req, res);

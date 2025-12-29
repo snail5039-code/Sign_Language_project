@@ -3,6 +3,8 @@ package com.example.demo.service;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -50,6 +52,11 @@ public class ArticleService {
 
 	public void articleModify(Article article, int loginMemberId) {
         Article existing = articleDetail(article.getId()); // 없으면 404 처리
+        
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("AUTH=" + a);
+        System.out.println("AUTH.isAuthenticated=" + (a != null && a.isAuthenticated()));
+        System.out.println("AUTH.name=" + (a != null ? a.getName() : null));
 
         if (existing.getMemberId() == null || !existing.getMemberId().equals(loginMemberId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 수정할 수 있습니다.");

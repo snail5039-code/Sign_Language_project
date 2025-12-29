@@ -15,7 +15,7 @@ export default function Join() {
   });
 
   useEffect(() => {
-  axios.get("/api/countries")
+  axios.get("/countries")
     .then((res) => {
       console.log("countries status:", res.status);
       console.log("countries data:", res.data);

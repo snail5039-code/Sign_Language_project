@@ -64,22 +64,39 @@ public class MemberService {
 		return countryDao.findAll();
 	}
 	
-	public Member upsertSocialUser(String provider,  String email, String name, String providerKey) {
-		Member m = this.memberDao.findByProviderAndKey(provider, providerKey);
-		if (m != null) return m;
-		
-		Member nm = new Member();
-		nm.setProvider(provider);
-		nm.setProviderKey(providerKey);
-		nm.setEmail(email);
-		nm.setName(name);
-		nm.setLoginId(provider + "_"  + providerKey);
-		nm.setCountryId(1);
-		
-		this.memberDao.insertSocial(nm);
-		
-		return this.memberDao.findByProviderAndKey(provider, providerKey);
+	public Member upsertSocialUser(String provider, String email, String name, String providerKey) {
+	    Member m = this.memberDao.findByProviderAndKey(provider, providerKey);
+	    if (m != null) return m;
+
+	    if (providerKey == null || providerKey.isBlank()) {
+	        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "providerKey is required");
+	    }
+
+	    String safeName = (name == null || name.isBlank())
+	            ? (provider.toUpperCase() + "_" + providerKey)
+	            : name;
+
+	    String safeEmail = (email == null || email.isBlank())
+	            ? (provider.toLowerCase() + "_" + providerKey + "@social.local")
+	            : email;
+
+	    Member nm = new Member();
+	    nm.setProvider(provider);
+	    nm.setProviderKey(providerKey);
+	    nm.setEmail(safeEmail);
+	    nm.setName(safeName);
+	    nm.setLoginId(provider + "_" + providerKey);
+
+	    // 핵심: DAO insertSocial이 #{loginPw} 쓰도록 바꿨으니 여기에 더미값 넣으면 안전
+	    nm.setLoginPw("SOCIAL_LOGIN");
+
+	    nm.setCountryId(1);
+	    this.memberDao.insertSocial(nm);
+
+	    return this.memberDao.findByProviderAndKey(provider, providerKey);
 	}
+
+
 
 	public Member findById(Integer id) {
 		return this.memberDao.findById(id);

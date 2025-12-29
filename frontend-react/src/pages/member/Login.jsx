@@ -4,10 +4,9 @@ import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
 import SocialLoginButtons from "./SocialLoginButtons";
 
-
 export default function Login() {
-  const [loginId, setLoginId] = useState(""); // 아이디
-  const [loginPw, setLoginPw] = useState(""); // 비번
+  const [loginId, setLoginId] = useState("");
+  const [loginPw, setLoginPw] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,26 +26,24 @@ export default function Login() {
     try {
       setLoading(true);
 
-      // 엔드포인트/필드명은 백에 맞춰서 수정
-      const res = await api.post("/api/members/login", {
+      const res = await api.post("/members/login", {
         loginId: i,
         loginPw: p,
       });
 
+      // 백엔드 응답 키: accessToken
       const token = res?.data?.accessToken;
 
-      if (!token) {
-        throw new Error("NO_TOKEN");
-      }
+      if (!token) throw new Error("NO_TOKEN");
 
-      loginWithToken(res.data.accessToken);
-      nav("/"); // 로그인 후 이동할 페이지
+      await loginWithToken(token);
+      nav("/board", { replace: true });
 
     } catch (e2) {
+      console.log("LOGIN_ERR:", e2?.response?.status, e2?.response?.data, e2);
       if (e2.message === "NO_TOKEN") setErrorMsg("로그인 실패(토큰 없음)");
       else if (e2?.response?.status === 401) setErrorMsg("아이디/비밀번호가 틀림");
       else setErrorMsg(e2?.response?.data?.message || "로그인 실패");
-
     } finally {
       setLoading(false);
     }
@@ -95,12 +92,14 @@ export default function Login() {
           >
             {loading ? "로그인 중..." : "로그인"}
           </button>
+
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">아이디가 없으면</span>
-              <Link to="/join" className="text-blue-600 hover:underline font-medium">
-               회원가입
-              </Link>
+            <Link to="/join" className="text-blue-600 hover:underline font-medium">
+              회원가입
+            </Link>
           </div>
+
           <hr className="my-5" />
           <SocialLoginButtons />
         </form>

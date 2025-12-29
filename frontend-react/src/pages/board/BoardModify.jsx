@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import { api } from "../../api/client";
 
 export default function BoardModify() {
   const { id } = useParams();
@@ -11,7 +11,8 @@ export default function BoardModify() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get(`/api/boards/${id}`).then((res) => {
+    // api 인스턴스는 baseURL=/api 라서 /boards로 호출해야 함
+    api.get(`/boards/${id}`).then((res) => {
       setTitle(res.data.title ?? "");
       setContent(res.data.content ?? "");
     });
@@ -20,11 +21,12 @@ export default function BoardModify() {
   const onSave = async () => {
     try {
       setLoading(true);
-      await axios.put(`/api/boards/${id}`, { title, content });
-      nav(`/boards/${id}`);
+      await api.put(`/boards/${id}`, { title, content }); // 토큰 자동 첨부(인터셉터)
+      nav(`/board/${id}`);
     } catch (e) {
       console.error(e);
-      alert("수정 실패. 백엔드 확인");
+      if (e?.response?.status === 401) alert("로그인이 필요합니다.");
+      else alert("수정 실패. 백엔드 확인");
     } finally {
       setLoading(false);
     }

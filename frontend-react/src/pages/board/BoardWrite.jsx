@@ -22,7 +22,7 @@ export default function BoardWrite({ boardId, onSuccess }) {
       setErrorMsg("");
 
       // axios.post -> api.post (토큰 자동 첨부)
-      await api.post("/api/boards", {
+      await api.post("/boards", {
         boardId: Number(boardId),
         title: t,
         content: c,

@@ -12,7 +12,7 @@ export default function Logout() {
       } catch (e) {
         // 실패해도 일단 화면은 보냄
       } finally {
-        nav("/login");
+        nav("/");
       }
     })();
   }, [nav]);

@@ -15,11 +15,11 @@ export default function BoardDetail() {
     (async () => {
       try {
         setErrorMsg("");
-        const res = await api.get(`/api/boards/${id}`);
+        const res = await api.get(`/boards/${id}`);
         setArticle(res.data);
       } catch (e) {
         console.error(e);
-        setErrorMsg("상세를 불러오지 못했어. 존재하지 않는 글일 수 있어!");
+        setErrorMsg("상세를 불러오지 못힘. 존재하지 않는 글일 수 있음");
       }
     })();
   }, [id]);
@@ -68,11 +68,18 @@ export default function BoardDetail() {
         <button className="mt-6 px-4 py-2 rounded-xl border" onClick={() => nav(`/board/${id}/modify`)}>
           수정
         </button>
-        <button className="mt-6 px-4 py-2 rounded-xl border" onClick={async () => {
-          if (!confirm("정말 삭제할까?")) return;
-          await api.delete(`/api/boards/${id}`);
-          nav("/board");
-        }}>
+        <button
+          className="mt-6 px-4 py-2 rounded-xl border"
+          onClick={async () => {
+            try {
+             if (!confirm("정말 삭제할까?")) return;
+               await api.delete(`/boards/${id}`);
+               nav("/board");
+            } catch (e) {
+            console.error(e);
+            alert(e?.response?.data?.message || "삭제 실패");
+            }
+          }}>
          삭제
         </button>
       </div>

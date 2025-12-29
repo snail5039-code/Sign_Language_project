@@ -1,99 +1,69 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { jwtDecode } from "jwt-decode";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api, attachInterceptors } from "../api/client";
 
-const AuthCtx = createContext(null);
+const AuthContext = createContext(null);
+export const useAuth = () => useContext(AuthContext);
 
-function safeDecode(token) {
-  try {
-    return jwtDecode(token);
-  } catch {
-    return null;
-  }
-}
+export default function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-function isTokenExpiredOrNear(token, leewaySec = 30) {
-  const decoded = safeDecode(token);
-  if (!decoded?.exp) return true;
-  const now = Math.floor(Date.now() / 1000);
-  return decoded.exp <= now + leewaySec;
-}
+  const getToken = () => localStorage.getItem("accessToken");
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem("accessToken"));
-  const [user, setUser] = useState(() => (token ? safeDecode(token) : null));
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
     localStorage.removeItem("accessToken");
+    setUser(null);
+    // 백엔드 logout API 없으면 그냥 비워둬도 됨
+    // await api.post("/members/logout");
   };
 
-  const onLogout = async () => {
-    try {
-      await api.post("/api/members/logout");
-    } catch {}
-    logout();
-  };
-
-  const loginWithToken = (newToken) => {
-    setToken(newToken);
-    localStorage.setItem("accessToken", newToken);
-    setUser(safeDecode(newToken));
-  };
-
-  // 앱 시작 시 1번: refresh 쿠키로 accessToken 재발급
-  const didInit = useRef(false);
+  // 인터셉터 1회 장착
   useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-
-    (async () => {
-      try {
-        if (token && !isTokenExpiredOrNear(token)) return;
-
-        const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
-        const res = await fetch(`${BASE_URL}/api/auth/token`, {
-          method: "POST",
-          credentials: "include",
-        });
-
-        if (!res.ok) throw new Error(`refresh failed: ${res.status}`);
-
-        const data = await res.json();
-        const newToken = data.accessToken ?? data.token;
-        if (newToken) loginWithToken(newToken);
-      } catch {
-        logout();
-      } finally {
-        setIsAuthLoading(false);
-      }
-    })();
+    attachInterceptors(getToken, logout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // axios 인터셉터에 토큰 붙이기
+  // 앱 시작 시: 토큰 있으면 내 정보 로딩
   useEffect(() => {
-    attachInterceptors(
-      () => token,
-      () => logout()
-    );
-  }, [token]);
+    const boot = async () => {
+      const token = getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await api.get("/members/me");
+        setUser(res.data);
+      } catch (e) {
+        await logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+    boot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 로그인 성공 시 호출할 함수
+  const loginWithToken = async (token) => {
+    localStorage.setItem("accessToken", token);
+    const res = await api.get("/members/me"); // 토큰으로 내 정보 가져오기
+    setUser(res.data);
+  };
 
   const value = useMemo(
     () => ({
-      token,
       user,
+      setUser,
+      loading,
+      isAuthed: !!user,
+      token: getToken(),
       loginWithToken,
-      logout: onLogout,     // 서버 로그아웃까지 포함한 logout 제공
-      isAuthLoading,
-      isLoggedIn: !!token,
+      setAccessToken: (t) => localStorage.setItem("accessToken", t),
+      logout,
     }),
-    [token, user, isAuthLoading]
+    [user, loading]
   );
 
-  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-export const useAuth = () => useContext(AuthCtx);

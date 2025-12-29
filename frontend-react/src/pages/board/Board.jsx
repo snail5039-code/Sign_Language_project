@@ -45,7 +45,7 @@ export default function Board() {
       setLoading(true);
       setErrorMsg("");
 
-      const res = await api.get("/api/boards", { params: { boardId } });
+      const res = await api.get("/boards", { params: { boardId } });
       setBoards(res.data);
     } catch (e) {
       console.error(e);

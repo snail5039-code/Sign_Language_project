@@ -39,12 +39,11 @@ public interface MemberDao {
         where provider = #{provider}
           and email = #{email}
     """)
-    Member findByProviderAndEmail(@Param("provider") String provider,
-                                  @Param("email") String email);
+    Member findByProviderAndEmail(@Param("provider") String provider, @Param("email") String email);
 
 	@Insert("""
-			insert into member(regdate, updatedate, loginid, loginpw, name, email, countryid, provider, provider_key)
-			values (now(), now(), #{loginId}, '', #{name}, #{email}, #{countryId}, #{provider}, #{providerKey})
+			    insert into member(regdate, updatedate, loginid, loginpw, name, email, countryid, provider, provider_key)
+			    values (now(), now(), #{loginId}, #{loginPw}, #{name}, #{email}, #{countryId}, #{provider}, #{providerKey})
 			""")
 	void insertSocial(Member member);
 	
