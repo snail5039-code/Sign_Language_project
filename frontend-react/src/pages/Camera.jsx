@@ -136,18 +136,6 @@ export default function Camera() {
 
     const intervalId = setInterval(() => {
       const latest = latestLandmarksRef.current;
-      const faces = latestFaceLandmarksRef.current ?? [];
-      const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
-      
-      const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z})) : [];
-
-      const hasFace = face.length > 0;
-      const hasHands = (latest?.handsLm?.length ?? 0) > 0; // hasHands 변수 추가해버림
-      
-      if (!hasHands) return;
-
-      // const { handsLm, handed } = latest;
-
       // if (latest?.handsLm?.length) {
       //   const {handsLm, handed} = latest;
       // }
@@ -155,8 +143,6 @@ export default function Camera() {
       const handsFixed = [[], []]; // 1: Right, 0: Left
 
       if (hasHands) {
-        const {handsLm, handed} = latest;
-
         for (let i = 0; i < handsLm.length; i++) {
            // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
           const label = handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
@@ -167,9 +153,6 @@ export default function Camera() {
           handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z}));
         }
       }
-      
-      const frame = { t: Date.now(), hands: handsFixed, face }; // face 추가!!!
-      bufferRef.current.push(frame);
       setFrameCount(bufferRef.current.length);
     }, 100);
     
