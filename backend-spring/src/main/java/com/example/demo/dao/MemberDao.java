@@ -56,4 +56,10 @@ public interface MemberDao {
 			""")
 	Member findByProviderAndKey(@Param("provider") String provider, @Param("providerKey") String providerKey);
 
+	@Select("""
+			select *
+				from member
+				where id = #{id}
+			""")
+	Member findById(@Param("id") Integer id);
 }

@@ -28,7 +28,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                var auth = jwtTokenProvider.toAuthentication(token);
+                var auth = jwtTokenProvider.toAuthenticationFromAccessToken(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception e) {
                 // 토큰이 이상하면 그냥 인증 없이 통과(보호 API에서 401 뜸)

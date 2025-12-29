@@ -77,4 +77,10 @@ public class MemberService {
 		
 		return this.memberDao.findByProviderAndKey(provider, providerKey);
 	}
+
+	public Member findById(Integer id) {
+		return this.memberDao.findById(id);
+	}
+
+
 }
