@@ -41,7 +41,7 @@ export default function Camera() {
         });
 
         streamRef.current = stream; // 나중에 끄려고 저장해논거임
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream; //srcObject 카메라에서 받아온 영상 넣어주는거
 
@@ -55,7 +55,7 @@ export default function Camera() {
             modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5,
-          });
+          });  
           // 손 감지용
           hands.onResults((results) => {
             const handsLm = results.multiHandLandmarks ?? [];
@@ -98,10 +98,10 @@ export default function Camera() {
           const mpCam = new MPCamera(videoRef.current, {
             onFrame: async () => {
               const image = videoRef.current;
-              await hands.send({image});
-              
+              await hands.send({ image });
+
               if (faceMeshRef.current) {
-                await faceMeshRef.current.send({image});
+                await faceMeshRef.current.send({ image });
               }
             },
             width: 480,
@@ -136,6 +136,18 @@ export default function Camera() {
 
     const intervalId = setInterval(() => {
       const latest = latestLandmarksRef.current;
+      const faces = latestFaceLandmarksRef.current ?? [];
+      const face0 = faces[0] ?? null; // 얼굴 1개만 쓸거면 0번만
+
+      const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z })) : [];
+
+      const hasFace = face.length > 0;
+      const hasHands = (latest?.handsLm?.length ?? 0) > 0; // hasHands 변수 추가해버림
+
+      if (!hasHands) return;
+
+      // const { handsLm, handed } = latest;
+
       // if (latest?.handsLm?.length) {
       //   const {handsLm, handed} = latest;
       // }
@@ -143,19 +155,24 @@ export default function Camera() {
       const handsFixed = [[], []]; // 1: Right, 0: Left
 
       if (hasHands) {
+        const { handsLm, handed } = latest;
+
         for (let i = 0; i < handsLm.length; i++) {
-           // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
+          // mediapipe 버전에 따라 label 위치가 다를 수 있어서 안전하게 처리
           const label = handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
-           
+
           const idx = label === "Left" ? 1 : 0;
-          
+
           // landmarks -> {x,y,z} 형태로 변환
-          handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z}));
+          handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z }));
         }
       }
+
+      const frame = { t: Date.now(), hands: handsFixed, face }; // face 추가!!!
+      bufferRef.current.push(frame);
       setFrameCount(bufferRef.current.length);
     }, 100);
-    
+
     return () => clearInterval(intervalId);
   }, [recording]);
 
@@ -179,29 +196,49 @@ export default function Camera() {
     setSavedPayload(payload);
 
     const framesForServer = bufferRef.current
-      
+
       //.filter((f) => f.hands && f.hands.length > 0 || (f.face && f.face.length > 0))
-      .filter((f) => (f.hands?.some((h) => h?.length > 0 )))
+      .filter((f) => (f.hands?.some((h) => h?.length > 0)))
       .map((f) => ({
         t: f.t,
         hands: (f.hands ?? [[], []]).map((hand) =>
           (hand ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z }))
         ),
-        face: (f.face ?? []).map((p) => ({ x: p.x, y: p.y, z:p.z})),
+        face: (f.face ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z })),
       }));
 
     try {
       const res = await axios.post("/api/translate", {
         frames: framesForServer,
       });
-      console.log("서버 응답:", res.data);
-      setResultText(res.data.text);
-      setResultLabel(res.data.label ?? "");
+      const r = res.data;
+      const mode = r?.mode ?? "final";
+      console.log("서버 응답:", r);
 
-      const word = res.data.text;
-      const conf = Number(res.data.confidence ?? 0);
+      // 1) pending이면: 아직 확정 아니니까 화면/누적 로직 건드리지 말고 끝
+      if (mode === "pending") {
+        // 화면에 표시만 하고 싶으면 이 정도만
+        setResultText("(대기중...)");
+        setResultLabel("");
+        return;
+      }
 
-      if (!word || word === "번역 실패" || conf < 0.2) {
+      // 2) error면: 서버 에러
+      if (mode === "error") {
+        setResultText("(서버 에러)");
+        setResultLabel("");
+        return;
+      }
+
+      // 3) final이면: 여기서만 확정 처리
+      setResultText(r.text ?? "");
+      setResultLabel(r.label ?? "");
+
+      // === 기존 안정화/누적 로직은 final에서만 돌리기 ===
+      const word = r.text;
+      const conf = Number(r.confidence ?? 0);
+
+      if (!word || conf < 0.2) {
         setStableWord("");
         setStableCount(0);
         return;
@@ -212,10 +249,7 @@ export default function Camera() {
         setStableCount(next);
 
         if (next >= 2 && word !== lastWord) {
-          setSentence((prev) => {
-            if (prev) return prev + " " + word;
-            return word;
-          });
+          setSentence((prev) => (prev ? prev + " " + word : word));
           setLastWord(word);
 
           setStableWord("");
@@ -225,35 +259,37 @@ export default function Camera() {
         setStableWord(word);
         setStableCount(1);
       }
-    } catch (error) {
-      console.error("전송 실패:", error);
+    } catch (e) {
+      console.error("전송 실패:", e);
+      setResultText("(전송 실패)");
+      setResultLabel("");
     }
   };
   // 테스트임!! 샘플!!
-  const sendSample = async () => {
-    const sample = {
-      frames: [{
-        hands: [
-          Array.from({ length: 21 }, () => ({ x: 0.1, y: 0.1, z: 0.0})),
-          [],
-        ],
-        face: []
-      }]
-    };
-    
-    try {
-      const res = await axios.post("/api/translate", sample);
-      console.log("샘플 응답:", res.data);
+  // const sendSample = async () => {
+  //   const sample = {
+  //     frames: [{
+  //       hands: [
+  //         Array.from({ length: 21 }, () => ({ x: 0.1, y: 0.1, z: 0.0})),
+  //         [],
+  //       ],
+  //       face: []
+  //     }]
+  //   };
 
-      setResultText(res.data.text);
-      setResultLabel(res.data.label ?? "");
+  //   try {
+  //     const res = await axios.post("/api/translate", sample);
+  //     console.log("샘플 응답:", res.data);
 
-      // ✅ 여기서 너가 만든 안정화/누적 로직 그대로 실행되게 하면 됨
-      // (지금 onStop에 있는 "word/conf/stableCount" 블록을 여기로 복붙)
-    } catch (e) {
-      console.error("샘플 전송 실패:", e);
-    }
-  };
+  //     setResultText(res.data.text);
+  //     setResultLabel(res.data.label ?? "");
+
+  //     // ✅ 여기서 너가 만든 안정화/누적 로직 그대로 실행되게 하면 됨
+  //     // (지금 onStop에 있는 "word/conf/stableCount" 블록을 여기로 복붙)
+  //   } catch (e) {
+  //     console.error("샘플 전송 실패:", e);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -294,8 +330,8 @@ export default function Camera() {
               </div>
               <span
                 className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${recording
-                    ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
-                    : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"
+                  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                  : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"
                   }`}
               >
                 <span
@@ -314,12 +350,12 @@ export default function Camera() {
             />
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
+              {/* <button
                 onClick={sendSample}
                 className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-200 active:scale-[0.99]"
               >
                 샘플 전송(웹캠 없이 테스트)
-              </button>
+              </button> */}
 
               <button
                 onClick={onStart}
@@ -348,10 +384,10 @@ export default function Camera() {
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                <p className="mt-1 text-lg font-black text-slate-900">
+                <div className="mt-1 text-lg font-black text-slate-900">
                   <p>손 감지: <span>{handDetected ? "✅ 감지됨" : "❌ 없음"}</span></p>
-                </p>
-                <p className="text-sm">얼굴 감지: <span className="font-semibold">{faceDetected? "✅ 감지됨" : "❌ 없음"}</span></p>
+                </div>
+                <p className="text-sm">얼굴 감지: <span className="font-semibold">{faceDetected ? "✅ 감지됨" : "❌ 없음"}</span></p>
                 <p className="text-sm">얼굴 개수: <span className="font-semibold">{faceCount}</span></p>
               </div>
             </div>
@@ -406,14 +442,15 @@ export default function Camera() {
             </h3>
             <pre className="mt-3 max-h-72 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
               {JSON.stringify(
-                { ...savedPayload, frames: savedPayload.frames.slice(0, 5).map((f) => ({
-                  t: f.t,
-                  hands: f.hands,
+                {
+                  ...savedPayload, frames: savedPayload.frames.slice(0, 5).map((f) => ({
+                    t: f.t,
+                    hands: f.hands,
 
-                  faceLen: f.face?.length ?? 0,
-                  faceSample: (f.face ?? []).slice(0, 10),
-                })) 
-              },
+                    faceLen: f.face?.length ?? 0,
+                    faceSample: (f.face ?? []).slice(0, 10),
+                  }))
+                },
                 null,
                 2
               )}
