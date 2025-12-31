@@ -1,4 +1,4 @@
-package com.example.demo.controller;
+package com.example.demo.social;
 
 import java.util.Map;
 import org.springframework.http.*;

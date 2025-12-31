@@ -1,39 +1,33 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { api } from "../api/client";
 
 export default function OAuth2Redirect() {
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { setAccessToken, setUser } = useAuth();
+  const { setAccessToken } = useAuth();
 
   useEffect(() => {
     const run = async () => {
-      // query: ?accessToken=
-      let token = params.get("accessToken");
+      let accessToken = params.get("accessToken");
 
-      // hash: #accessToken=
-      if (!token && window.location.hash) {
+      // 만약 쿼리 스트링에 accessToken이 없다면, 해시에서 찾기
+      if (!accessToken && window.location.hash) {
         const hashParams = new URLSearchParams(window.location.hash.replace("#", ""));
-        token = hashParams.get("accessToken");
+        accessToken = hashParams.get("accessToken");
       }
 
-      if (!token) {
-        nav("/login", { replace: true });
+      if (!accessToken) {
+        nav("/login", { replace: true });  // 토큰이 없다면 로그인 페이지로 리디렉션
         return;
       }
 
-      setAccessToken(token);
-
-      const me = await api.get("/members/me");
-      setUser(me.data);
-
-      nav("/board", { replace: true });
+      setAccessToken(accessToken);  // 토큰을 localStorage에 저장
+      nav("/board", { replace: true });  // 로그인 후 대시보드로 리디렉션
     };
 
     run();
-  }, []);
+  }, [params, nav, setAccessToken]);
 
   return <div className="p-6">로그인 처리 중...</div>;
 }

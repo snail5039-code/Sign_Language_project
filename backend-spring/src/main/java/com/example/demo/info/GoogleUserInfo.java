@@ -1,6 +1,9 @@
-package com.example.demo.security;
+package com.example.demo.info;
+
 
 import java.util.Map;
+
+import com.example.demo.social.OAuth2UserInfo;
 
 public class GoogleUserInfo implements OAuth2UserInfo {
     private final Map<String, Object> attributes;
@@ -14,3 +17,5 @@ public class GoogleUserInfo implements OAuth2UserInfo {
     @Override public String getEmail() { return (String) attributes.get("email"); }
     @Override public String getName() { return (String) attributes.get("name"); }
 }
+
+

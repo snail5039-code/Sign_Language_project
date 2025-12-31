@@ -1,4 +1,4 @@
-package com.example.demo.security;
+package com.example.demo.social;
 
 public interface OAuth2UserInfo {
     String getProvider();    // google/kakao/naver
@@ -6,3 +6,6 @@ public interface OAuth2UserInfo {
     String getEmail();       // 없을 수 있음
     String getName();        // 없을 수 있음
 }
+
+
+

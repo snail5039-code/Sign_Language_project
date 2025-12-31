@@ -41,8 +41,9 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/logout" element={<Logout />} />
 
-      <Route path="*" element={<div>페이지가 없습니다</div>} />
       <Route path="/oauth2/success" element={<OAuth2Redirect />} />
+      
+      <Route path="*" element={<div>페이지가 없습니다</div>} />
     </Routes>
   );
 }

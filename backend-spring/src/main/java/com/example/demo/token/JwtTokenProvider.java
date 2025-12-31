@@ -1,4 +1,4 @@
-package com.example.demo.security;
+package com.example.demo.token;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -40,7 +40,7 @@ public class JwtTokenProvider {
         Date exp = Date.from(Instant.now().plus(accessExpMinutes, ChronoUnit.MINUTES));
 
         return Jwts.builder()
-                .subject(String.valueOf(memberId))
+        		.subject(String.valueOf(memberId))
                 .claim("loginId", loginId)
                 .claim("role", "ROLE_USER")
                 .claim("typ", "access")
@@ -97,4 +97,5 @@ public class JwtTokenProvider {
         }
         return Integer.valueOf(claims.getSubject());
     }
+
 }

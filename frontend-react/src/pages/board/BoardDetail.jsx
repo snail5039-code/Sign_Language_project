@@ -54,7 +54,7 @@ export default function BoardDetail() {
         <div className="text-sm text-gray-500 mt-2 flex flex-wrap gap-4">
           <span>게시판: {boardName}</span>
           <span>
-            작성자: {article.author?.loginId ?? article.authorLoginId ?? "알 수 없음"}
+            작성자: {article?.writerName ?? article.WriterName ?? "알 수 없음"}
           </span>
           <span>작성일: {article.regDate}</span>
           <span>수정일: {article.updateDate}</span>

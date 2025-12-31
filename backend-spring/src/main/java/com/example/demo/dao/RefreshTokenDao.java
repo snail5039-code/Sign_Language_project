@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import com.example.demo.dto.RefreshToken;
+import com.example.demo.token.RefreshToken;
 
 @Mapper
 public interface RefreshTokenDao {
@@ -19,18 +19,42 @@ public interface RefreshTokenDao {
     on conflict (member_id)
     do update set token = excluded.token, updated_at = now()
   """)
-  void upsert(@Param("memberId") Integer memberId, @Param("token") String token);
+  void upsert(
+      @Param("memberId") Integer memberId,
+      @Param("token") String token
+  );
 
   @Select("""
     select member_id as memberId, token
     from refresh_tokens
     where member_id = #{memberId}
   """)
-  Optional<RefreshToken> findByMemberId(@Param("memberId") Integer memberId);
+  Optional<RefreshToken> findByMemberId(
+      @Param("memberId") Integer memberId
+  );
+
+  @Select("""
+    select member_id as memberId, token
+    from refresh_tokens
+    where token = #{token}
+  """)
+  Optional<RefreshToken> findByToken(
+      @Param("token") String token
+  );
 
   @Delete("""
     delete from refresh_tokens
     where member_id = #{memberId}
   """)
-  void deleteByMemberId(@Param("memberId") Integer memberId);
+  void deleteByMemberId(
+      @Param("memberId") Integer memberId
+  );
+
+  @Delete("""
+    delete from refresh_tokens
+    where token = #{token}
+  """)
+  void deleteByToken(
+      @Param("token") String token
+  );
 }

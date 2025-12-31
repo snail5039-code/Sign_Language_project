@@ -1,6 +1,8 @@
-package com.example.demo.security;
+package com.example.demo.info;
 
 import java.util.Map;
+
+import com.example.demo.social.OAuth2UserInfo;
 
 @SuppressWarnings("rawtypes")
 public class KakaoUserInfo implements OAuth2UserInfo {
@@ -39,3 +41,5 @@ public class KakaoUserInfo implements OAuth2UserInfo {
         return null;
     }
 }
+
+

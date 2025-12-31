@@ -25,7 +25,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-
+      
       const res = await api.post("/members/login", {
         loginId: i,
         loginPw: p,
@@ -33,21 +33,22 @@ export default function Login() {
 
       // 백엔드 응답 키: accessToken
       const token = res?.data?.accessToken;
-
+    
       if (!token) throw new Error("NO_TOKEN");
 
-      await loginWithToken(token);
-      nav("/board", { replace: true });
+    // 로그인 후, JWT 토큰을 localStorage에 저장
+    localStorage.setItem('accessToken', token);
+    nav("/home", { replace: true });  // 메인 화면으로 리디렉션
+  } catch (e2) {
+    console.log("LOGIN_ERR:", e2?.response?.status, e2?.response?.data, e2);
 
-    } catch (e2) {
-      console.log("LOGIN_ERR:", e2?.response?.status, e2?.response?.data, e2);
-      if (e2.message === "NO_TOKEN") setErrorMsg("로그인 실패(토큰 없음)");
-      else if (e2?.response?.status === 401) setErrorMsg("아이디/비밀번호가 틀림");
-      else setErrorMsg(e2?.response?.data?.message || "로그인 실패");
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (e2.message === "NO_TOKEN") setErrorMsg("로그인 실패(토큰 없음)");
+    else if (e2?.response?.status === 401) setErrorMsg("아이디/비밀번호가 틀림");
+    else setErrorMsg(e2?.response?.data?.message || "로그인 실패");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -75,6 +76,8 @@ export default function Login() {
               onChange={(e) => setLoginPw(e.target.value)}
               placeholder="비밀번호"
               type="password"
+              name="password"
+              autoComplete="current-password"
               disabled={loading}
             />
           </div>

@@ -11,11 +11,18 @@ export default function AuthProvider({ children }) {
   const getToken = () => localStorage.getItem("accessToken");
 
   const logout = async () => {
+  try {
+    await api.post("/auth/logout", null, {
+      withCredentials: true, // ⭐ 쿠키 보내기
+    });
+  } catch (e) {
+    console.warn("logout api failed", e);
+  } finally {
     localStorage.removeItem("accessToken");
     setUser(null);
-    // 백엔드 logout API 없으면 그냥 비워둬도 됨
-    // await api.post("/members/logout");
-  };
+  }
+};
+
 
   // 인터셉터 1회 장착
   useEffect(() => {
