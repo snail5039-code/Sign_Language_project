@@ -29,6 +29,7 @@ import time
 import json
 import numpy as np
 import torch
+import re
 
 from train import TCNClassifier  # ✅ 학습 때 쓴 모델 클래스 그대로 사용
 
@@ -82,6 +83,14 @@ def load_label_to_text() -> Dict[str, str]:
         return {}
 
 label_to_text = load_label_to_text()
+
+def norm_word(label: Optional[str]) -> Optional[str]:
+    if not label:
+        return label
+    m = re.match(r"^WORD(\d+)$", label)
+    if not m:
+        return label
+    return f"WORD{int(m.group(1)):05d}"
 
 # ------------------------------------------------------------
 # 4) label_map 로드 (정수 인덱스 -> 라벨 문자열)
@@ -332,7 +341,7 @@ def predict(req: PredictRequest):
         lb = idx_to_label[int(idx)]
         candidates.append(Candidate(
             label=lb,
-            text=label_to_text.get(lb),
+            text=label_to_text.get(norm_word(lb)) or label_to_text.get(lb),
             prob=float(p)
         ))
 
@@ -341,7 +350,7 @@ def predict(req: PredictRequest):
         return PredictResponse(
             mode="final",
             label=pred_label,
-            text=label_to_text.get(pred_label),
+            text=label_to_text.get(norm_word(pred_label)) or label_to_text.get(pred_label),
             confidence=confidence,
             streak=1,
             framesReceived=frames_hand,
@@ -438,7 +447,7 @@ def predict(req: PredictRequest):
         return PredictResponse(
             mode="final",
             label=winner,
-            text=label_to_text.get(winner),
+            text=label_to_text.get(norm_word(winner)) or label_to_text.get(winner),
             confidence=avg_prob,         # final confidence는 avg_prob로 주는 게 더 안정적
             streak=WIN_SIZE,             # debug용
             framesReceived=frames_hand,
