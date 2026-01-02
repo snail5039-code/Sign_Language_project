@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/members/login").permitAll()
                 .requestMatchers("/api/members/oauth2/login").permitAll() // 추가: 소셜 가입 API 허용
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/help/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/boards/**").permitAll()

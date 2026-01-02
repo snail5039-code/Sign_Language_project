@@ -23,7 +23,7 @@ export default function OAuth2Redirect() {
       }
 
       setAccessToken(accessToken);  // 토큰을 localStorage에 저장
-      nav("/board", { replace: true });  // 로그인 후 대시보드로 리디렉션
+      nav("/", { replace: true });
     };
 
     run();

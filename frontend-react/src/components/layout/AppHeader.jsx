@@ -13,7 +13,7 @@ export default function AppHeader() {
   return (
     <div className="sticky top-0 bg-white border-b z-50">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to="/board" className="font-extrabold">게시판</Link>
+        <Link to="/" className="font-extrabold">메인</Link>
 
         {!isAuthed ? (
           <div className="flex items-center gap-3">
