@@ -14,7 +14,11 @@ mybatis:
     map-underscore-to-camel-case: true
 
 kcisa:
-  base-url: https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01701
-  service-key: 1099ca75-c757-450f-bb0f-3f7f4d90833f
-  num-of-rows: 10
-
+  daily:
+    base-url: https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01701
+    service-key: 1099ca75-c757-450f-bb0f-3f7f4d90833f
+    num-of-rows: 10
+  integrated: 
+    base-url: https://api.kcisa.kr/API_CNV_054/request
+    service-key: 98c18162-3ef8-4520-be8c-ba70dc3dfc42
+    num-of-rows: 10

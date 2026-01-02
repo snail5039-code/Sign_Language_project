@@ -3,11 +3,13 @@ package com.example.demo.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.example.demo.dto.DictionaryDto.DictionaryItem;
 import com.example.demo.dto.KcisaItem;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -106,4 +108,17 @@ public class KcisaIngestService {
         if (itemObj instanceof Map) return List.of((Map<String, Object>) itemObj);
         return List.of();
     }
+    
+//    // 사전 상세용: id로 하나 찾아서 반환
+//    public DictionaryItem searchDictionary(String keyword, int limit) {
+//    	List<DictionaryItem> list = searchDictionary("", 50);
+//    	return list.stream().filter(x -> Objects.equals(x.id(), id)).findFirst().orElse(null);
+//    }
+//    
+//    private DictionaryItem toDictionaryItem(KcisaItem k) {
+//    	if (k == null) return null;
+//    	
+//    	String id = safe(k.getThumbUrl(), k.getTitle());
+//    	String word = safe(k.getTitle(), "");
+//    }
 }
