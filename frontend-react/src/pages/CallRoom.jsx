@@ -20,39 +20,39 @@ export default function CallRoom() {
 
   // 임시 샘플 프레임 제작
   const makeSampleFrames = (n = 12) => {
-  // mediapipe 손 랜드마크는 21개라 가정 (일반적으로 21)
-  const makeHand21 = (dx = 0, dy = 0) =>
-    Array.from({ length: 21 }, (_, i) => ({
-      x: 0.3 + dx + i * 0.001,
-      y: 0.4 + dy + i * 0.001,
-      z: 0,
+    // mediapipe 손 랜드마크는 21개라 가정 (일반적으로 21)
+    const makeHand21 = (dx = 0, dy = 0) =>
+      Array.from({ length: 21 }, (_, i) => ({
+        x: 0.3 + dx + i * 0.001,
+        y: 0.4 + dy + i * 0.001,
+        z: 0,
+      }));
+
+    const baseT = Date.now();
+
+    return Array.from({ length: n }, (_, k) => ({
+      t: baseT + k * 100,
+      hands: [
+        makeHand21(k * 0.002, 0), // 0번(Left로 쓰든 Right로 쓰든) 랜덤 이동
+        [],                       // 다른 손은 비움
+      ],
+      face: [], // face는 일단 빈 배열로 테스트
     }));
+  };
 
-  const baseT = Date.now();
-
-  return Array.from({ length: n }, (_, k) => ({
-    t: baseT + k * 100,
-    hands: [
-      makeHand21(k * 0.002, 0), // 0번(Left로 쓰든 Right로 쓰든) 랜덤 이동
-      [],                       // 다른 손은 비움
-    ],
-    face: [], // face는 일단 빈 배열로 테스트
-  }));
-};
-
-// 테스트용 번역 샘플
-const testTranslateSample = async () => {
-  try {
-    const frames = makeSampleFrames(12);
-    const res = await axios.post(`/api/translate`, { frames });
-    const word = res.data?.text ?? "(no text)";
-    const conf = Number(res.data?.confidence ?? 0);
-    setTranslatedText(`[SAMPLE] ${word} (conf=${conf.toFixed(2)})`);
-  } catch (e) {
-    console.error(e);
-    setTranslatedText("[SAMPLE] 요청 실패 (콘솔 확인)");
-  }
-};
+  // 테스트용 번역 샘플
+  const testTranslateSample = async () => {
+    try {
+      const frames = makeSampleFrames(12);
+      const res = await axios.post(`/api/translate`, { frames });
+      const word = res.data?.text ?? "(no text)";
+      const conf = Number(res.data?.confidence ?? 0);
+      setTranslatedText(`[SAMPLE] ${word} (conf=${conf.toFixed(2)})`);
+    } catch (e) {
+      console.error(e);
+      setTranslatedText("[SAMPLE] 요청 실패 (콘솔 확인)");
+    }
+  };
   const [translatedText, setTranslatedText] = useState("번역 대기중...");
   const handsRef = useRef(null);
   const faceMeshRef = useRef(null);
@@ -66,6 +66,20 @@ const testTranslateSample = async () => {
   const stableWordRef = useRef("");
   const stableCountRef = useRef(0);
   const lastWordRef = useRef("");
+  const [liveMeta, setLiveMeta] = useState({
+    mode: "idle",
+    frames: 0,
+    sendFrames: 0,
+    conf: 0,
+    inFlight: false,
+    err: "",
+  });
+
+  // ✅ 번역 확정 로그(채팅처럼 쌓는 용)
+  const [translationLog, setTranslationLog] = useState([]);
+
+  // ✅ 로그 자동 스크롤용
+  const translationEndRef = useRef(null);
 
 
   // 선택 (디버그용)
@@ -126,226 +140,230 @@ const testTranslateSample = async () => {
   const offerLockedRef = useRef(false);
 
   const stopVision = () => {
-  // 타이머 클리어
-  if (captureTimerRef.current) clearInterval(captureTimerRef.current);  // remote 영상 프레임을 미디어파이프에 넣는 루프
-  if (frameTimerRef.current) clearInterval(frameTimerRef.current);   // latestLandmarks를 bufferRef에 프레임으로 쌓는 루프
-  if (inferTimerRef.current) clearInterval(inferTimerRef.current);    // 버퍼 모아서 요청 보내는 루프 (0.4)초마다
-  
-  // 레퍼넌스 비워줘서 "현재 실행중이 아님" 상태로 만듦
-  captureTimerRef.current = null;
-  frameTimerRef.current = null;
-  inferTimerRef.current = null;
-  
-  // 미디어파이프 엔진 종료
-  if (handsRef.current) handsRef.current.close();
-  if (faceMeshRef.current) faceMeshRef.current.close();
+    // 타이머 클리어
+    if (captureTimerRef.current) clearInterval(captureTimerRef.current);  // remote 영상 프레임을 미디어파이프에 넣는 루프
+    if (frameTimerRef.current) clearInterval(frameTimerRef.current);   // latestLandmarks를 bufferRef에 프레임으로 쌓는 루프
+    if (inferTimerRef.current) clearInterval(inferTimerRef.current);    // 버퍼 모아서 요청 보내는 루프 (0.4)초마다
 
-  handsRef.current = null;
-  faceMeshRef.current = null;
-  
-  // 최신 인식 결과/버퍼 초기화
-  latestLandmarksRef.current = null;
-  latestFaceLandmarksRef.current = null;
-  bufferRef.current = [];
+    // 레퍼넌스 비워줘서 "현재 실행중이 아님" 상태로 만듦
+    captureTimerRef.current = null;
+    frameTimerRef.current = null;
+    inferTimerRef.current = null;
 
-  translatingRef.current = false;  // 번역 요청 중복방지 락 풀기
+    // 미디어파이프 엔진 종료
+    if (handsRef.current) handsRef.current.close();
+    if (faceMeshRef.current) faceMeshRef.current.close();
 
-  // 안정화 (같은 단어 연속 감지같은) 상태 초기화
-  stableWordRef.current = "";
-  stableCountRef.current = 0;
-  lastWordRef.current = "";
-};
+    handsRef.current = null;
+    faceMeshRef.current = null;
 
-useEffect(() => {
-  return () => {
-    stopVision(); 
-  };
-}, []); // 
+    // 최신 인식 결과/버퍼 초기화
+    latestLandmarksRef.current = null;
+    latestFaceLandmarksRef.current = null;
+    bufferRef.current = [];
 
-const startVisionOnRemote = async (videoEl) => {
-  if (!videoEl) return;  // 비디오 없으면 종료
+    translatingRef.current = false;  // 번역 요청 중복방지 락 풀기
 
-  // 이미 돌고 있으면 중복 시작 방지
-  if (handsRef.current || faceMeshRef.current) return;
-
-  // remote video가 재생 가능 상태 될 때까지 살짝 기다리기
-  const waitReady = async () => {
-    for (let i = 0; i < 30; i++) {
-      if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) return true;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    return false;
-  };
-  const ok = await waitReady();
-  if (!ok) return;
-
-  // 미디어파이프 엔진 2개 만든다
-  // 손쪽 엔진 생성 + 옵션 + 결과 콜백
-  const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-  });
-  hands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-  });
-  hands.onResults((results) => {
-    const handsLm = results.multiHandLandmarks ?? [];
-    const handed = results.multiHandedness ?? [];
-    latestLandmarksRef.current = { handsLm, handed };
-    setHandDetected(handsLm.length > 0);
-  });
-
-  // 페이스메시도 동일하게!
-  const faceMesh = new FaceMesh({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-  });
-  faceMesh.setOptions({
-    maxNumFaces: 1,
-    refineLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-  });
-  faceMesh.onResults((results) => {
-    const faces = results.multiFaceLandmarks ?? [];
-    latestFaceLandmarksRef.current = faces;
-    setFaceDetected(faces.length > 0);
-  });
-
-  handsRef.current = hands;
-  faceMeshRef.current = faceMesh;
-
-  // 타이머 3개로 실시간 파이프라인 돌릴거임
-  // 10fps로 비디오 프레임 미디어파이프에 넣음
-  captureTimerRef.current = setInterval(async () => {
-    try {
-      if (!videoEl || videoEl.readyState < 2) return;
-      await hands.send({ image: videoEl });
-      await faceMesh.send({ image: videoEl });
-    } catch (e) {
-      // remote stream 끊기면 여기서 에러날 수 있음
-      // 너무 시끄럽게 안 찍고 조용히 무시
-    }
-  }, 100);
-
-  // 10fps로 "최신 랜드마크"를 frame으로 쌓기 (손 없으면 skip) ======
-  const T = 30; // 최근 30프레임만 유지 (3초)
-  const fps = 10;
-
-  const pushFrame = () => {
-    const latest = latestLandmarksRef.current;
-    const faces = latestFaceLandmarksRef.current ?? [];
-    const face0 = faces[0] ?? null;
-
-    const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z })) : [];
-
-    const hasHands = (latest?.handsLm?.length ?? 0) > 0;
-    if (!hasHands) return;
-
-    // 항상 [Left, Right] 순서 고정 (Camera랑 동일)
-    const handsFixed = [[], []]; // 0: Left, 1: Right (네 코드 기준으로 맞춤)
-
-    const { handsLm, handed } = latest;
-
-    for (let i = 0; i < handsLm.length; i++) {
-      const label =
-        handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
-
-      // 여기서 Left/Right 뒤집는 건 Camera 코드와 동일하게 유지
-      // 만약 번역이 좌우 때문에 계속 틀리면 이 줄만 바꿔보면 됨
-      const idx = label === "Left" ? 1 : 0;
-
-      handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z }));
-    }
-
-    bufferRef.current.push({ t: Date.now(), hands: handsFixed, face });
-
-    // rolling window 유지
-    while (bufferRef.current.length > T) bufferRef.current.shift();
+    // 안정화 (같은 단어 연속 감지같은) 상태 초기화
+    stableWordRef.current = "";
+    stableCountRef.current = 0;
+    lastWordRef.current = "";
   };
 
-  // 10fps로 최신 랜드마크 버퍼에 쌓음
-  frameTimerRef.current = setInterval(pushFrame, 100);
+  useEffect(() => {
+    return () => {
+      stopVision();
+    };
+  }, []); // 
 
-  // // stopVision에서 같이 정리되도록 합쳐두기
-  // const oldStop = stopVision;
-  // stopVision = () => {
-  //   clearInterval(frameTimer);
-  //   oldStop();
-  // };
+  const startVisionOnRemote = async (videoEl) => {
+    if (!videoEl) return;  // 비디오 없으면 종료
 
-  // 0.4초마다 서버 번역 요청
-  inferTimerRef.current = setInterval(async () => {
-    if (translatingRef.current) return;
-    if (bufferRef.current.length < 10) return; // 최소 프레임
+    // 이미 돌고 있으면 중복 시작 방지
+    if (handsRef.current || faceMeshRef.current) return;
 
-    const framesForServer = bufferRef.current
-      .filter((f) => f.hands?.some((h) => h?.length > 0))
-      .map((f) => ({
-        t: f.t,
-        hands: (f.hands ?? [[], []]).map((hand) =>
-          (hand ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z }))
-        ),
-        face: (f.face ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z })),
-      }));
+    // remote video가 재생 가능 상태 될 때까지 살짝 기다리기
+    const waitReady = async () => {
+      for (let i = 0; i < 30; i++) {
+        if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) return true;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    };
+    const ok = await waitReady();
+    if (!ok) return;
 
-    if (framesForServer.length < 10) return;
+    // 미디어파이프 엔진 2개 만든다
+    // 손쪽 엔진 생성 + 옵션 + 결과 콜백
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    });
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    hands.onResults((results) => {
+      const handsLm = results.multiHandLandmarks ?? [];
+      const handed = results.multiHandedness ?? [];
+      latestLandmarksRef.current = { handsLm, handed };
+      setHandDetected(handsLm.length > 0);
+    });
 
-    translatingRef.current = true;
-    try {
-      const res = await axios.post(`/api/translate`, { frames: framesForServer });
-      const word = res.data?.text ?? "";
-      const conf = Number(res.data?.confidence ?? 0);
+    // 페이스메시도 동일하게!
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+    });
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    faceMesh.onResults((results) => {
+      const faces = results.multiFaceLandmarks ?? [];
+      latestFaceLandmarksRef.current = faces;
+      setFaceDetected(faces.length > 0);
+    });
 
-      setResultText(word);
+    handsRef.current = hands;
+    faceMeshRef.current = faceMesh;
 
-      // Camera 안정화 로직 그대로
-      if (!word || word === "번역 실패" || conf < 0.2) {
-        stableWordRef.current = "";
-        stableCountRef.current = 0;
-        lastWordRef.current = "";
-        
-        setStableWord("");
-        setStableCount(0);
-        setLastWord("");
-        setTranslatedText("번역 대기중...");
-        return;
+    // 타이머 3개로 실시간 파이프라인 돌릴거임
+    // 10fps로 비디오 프레임 미디어파이프에 넣음
+    captureTimerRef.current = setInterval(async () => {
+      try {
+        if (!videoEl || videoEl.readyState < 2) return;
+        await hands.send({ image: videoEl });
+        await faceMesh.send({ image: videoEl });
+      } catch (e) {
+        // remote stream 끊기면 여기서 에러날 수 있음
+        // 너무 시끄럽게 안 찍고 조용히 무시
+      }
+    }, 100);
+
+    // 10fps로 "최신 랜드마크"를 frame으로 쌓기 (손 없으면 skip) ======
+    const T = 30; // 최근 30프레임만 유지 (3초)
+    const fps = 10;
+
+    const pushFrame = () => {
+      const latest = latestLandmarksRef.current;
+      const faces = latestFaceLandmarksRef.current ?? [];
+      const face0 = faces[0] ?? null;
+
+      const face = face0 ? face0.map((p) => ({ x: p.x, y: p.y, z: p.z })) : [];
+
+      const hasHands = (latest?.handsLm?.length ?? 0) > 0;
+      if (!hasHands) return;
+
+      // 항상 [Left, Right] 순서 고정 (Camera랑 동일)
+      const handsFixed = [[], []]; // 0: Left, 1: Right (네 코드 기준으로 맞춤)
+
+      const { handsLm, handed } = latest;
+
+      for (let i = 0; i < handsLm.length; i++) {
+        const label =
+          handed?.[i]?.label ?? handed?.[i]?.classification?.[0]?.label ?? null;
+
+        // 여기서 Left/Right 뒤집는 건 Camera 코드와 동일하게 유지
+        // 만약 번역이 좌우 때문에 계속 틀리면 이 줄만 바꿔보면 됨
+        const idx = label === "Left" ? 1 : 0;
+
+        handsFixed[idx] = handsLm[i].map((p) => ({ x: p.x, y: p.y, z: p.z }));
       }
 
-      // 안정화
-      if (word === stableWordRef.current) {
-        const next = stableCountRef.current + 1;  // 안정화 카운트 계산
-        stableCountRef.current = next;
-        setStableCount(next);
+      bufferRef.current.push({ t: Date.now(), hands: handsFixed, face });
 
-        if (next >= 2 && word !== lastWordRef.current) {
-          lastWordRef.current = word;
-          setLastWord(word);
-          
-          setSentence((prev) => (prev ? prev + " " + word : word));
-          
+      // rolling window 유지
+      while (bufferRef.current.length > T) bufferRef.current.shift();
+    };
+
+    // 10fps로 최신 랜드마크 버퍼에 쌓음
+    frameTimerRef.current = setInterval(pushFrame, 100);
+
+    // // stopVision에서 같이 정리되도록 합쳐두기
+    // const oldStop = stopVision;
+    // stopVision = () => {
+    //   clearInterval(frameTimer);
+    //   oldStop();
+    // };
+
+    // 0.4초마다 서버 번역 요청
+    inferTimerRef.current = setInterval(async () => {
+      if (translatingRef.current) return;
+      if (bufferRef.current.length < 10) return; // 최소 프레임
+
+      const framesForServer = bufferRef.current
+        .filter((f) => f.hands?.some((h) => h?.length > 0))
+        .map((f) => ({
+          t: f.t,
+          hands: (f.hands ?? [[], []]).map((hand) =>
+            (hand ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z }))
+          ),
+          face: (f.face ?? []).map((p) => ({ x: p.x, y: p.y, z: p.z })),
+        }));
+
+      if (framesForServer.length < 10) return;
+
+      translatingRef.current = true;
+      try {
+        const res = await axios.post(`/api/translate`, { frames: framesForServer });
+        const word = res.data?.text ?? "";
+        const conf = Number(res.data?.confidence ?? 0);
+
+        setResultText(word);
+
+        // Camera 안정화 로직 그대로
+        if (!word || word === "번역 실패" || conf < 0.2) {
           stableWordRef.current = "";
           stableCountRef.current = 0;
+          lastWordRef.current = "";
 
           setStableWord("");
           setStableCount(0);
+          setLastWord("");
+          setTranslatedText("번역 대기중...");
+          return;
         }
-      } else {
-        stableWordRef.current = word;
-        stableCountRef.current = 1;
 
-        setStableWord(word);
-        setStableCount(1);
+        // 안정화
+        if (word === stableWordRef.current) {
+          const next = stableCountRef.current + 1;  // 안정화 카운트 계산
+          stableCountRef.current = next;
+          setStableCount(next);
+
+          if (next >= 2 && word !== lastWordRef.current) {
+            lastWordRef.current = word;
+            setLastWord(word);
+
+            setSentence((prev) => (prev ? prev + " " + word : word));
+            setTranslationLog((prev) => [
+              ...prev,
+              { ts: Date.now(), text: word, conf },
+            ]);
+
+            stableWordRef.current = "";
+            stableCountRef.current = 0;
+
+            setStableWord("");
+            setStableCount(0);
+          }
+        } else {
+          stableWordRef.current = word;
+          stableCountRef.current = 1;
+
+          setStableWord(word);
+          setStableCount(1);
+        }
+        setTranslatedText(word);
+      } catch (e) {
+        // 서버 끊기면 무시
+      } finally {
+        translatingRef.current = false;
       }
-      setTranslatedText(word);
-    } catch (e) {
-      // 서버 끊기면 무시
-    } finally {
-      translatingRef.current = false;
-    }
-  }, 400);
-};
+    }, 400);
+  };
 
 
   // ✅ roomId가 바뀌면(다른 방 들어가면) 상태 초기화
@@ -691,7 +709,7 @@ const startVisionOnRemote = async (videoEl) => {
       if (v && stream) {
         v.srcObject = stream;
         v.play().catch(() => { });
-        
+
         startVisionOnRemote(v); // 추가!
       }
     };
@@ -737,11 +755,11 @@ const startVisionOnRemote = async (videoEl) => {
               채팅 비우기
             </button>
             <button
-  onClick={testTranslateSample}
-  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
->
-  샘플 번역 테스트
-</button>
+              onClick={testTranslateSample}
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              샘플 번역 테스트
+            </button>
 
             <button
               onClick={leaveRoom} // ✅ 네 코드에 있는 나가기 함수로
@@ -766,7 +784,7 @@ const startVisionOnRemote = async (videoEl) => {
                 <span className="text-xs text-slate-500">Remote</span>
               </div>
               <div className="p-4 min-h-[120px]">
-                
+
                 {/* 메타는 본문 아래에 */}
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
                   <span className="rounded-full border px-2 py-1">
@@ -788,9 +806,8 @@ const startVisionOnRemote = async (videoEl) => {
                     conf: <b>{liveMeta.conf.toFixed(2)}</b>
                   </span>
                   <span
-                    className={`rounded-full border px-2 py-1 ${
-                      liveMeta.inFlight ? "bg-yellow-50" : ""
-                    }`}
+                    className={`rounded-full border px-2 py-1 ${liveMeta.inFlight ? "bg-yellow-50" : ""
+                      }`}
                   >
                     inFlight: <b>{liveMeta.inFlight ? "ON" : "OFF"}</b>
                   </span>
@@ -819,40 +836,40 @@ const startVisionOnRemote = async (videoEl) => {
               </div>
 
               <div className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-900">
-                  {translatedText}
-                </div>
-                <div className="h-[180px] overflow-auto rounded-lg border bg-white p-3">
-                  {translationLog.length === 0 ? (
-                    <div className="text-sm text-slate-400">
-                      확정된 단어가 아직 없어요.
-                    </div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {translationLog.map((m, i) => (
-                        <li
-                          key={m.ts + "-" + i}
-                          className="rounded-xl bg-slate-100 px-3 py-2"
-                        >
-                          <div className="flex items-end justify-between gap-3">
-                            <span className="text-sm text-slate-900">
-                              {m.text}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {new Date(m.ts).toLocaleTimeString("ko-KR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                              {typeof m.conf === "number"
-                                ? ` (${m.conf.toFixed(2)})`
-                                : ""}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div ref={translationEndRef} />
-                </div>
+                {translatedText}
+              </div>
+              <div className="h-[180px] overflow-auto rounded-lg border bg-white p-3">
+                {translationLog.length === 0 ? (
+                  <div className="text-sm text-slate-400">
+                    확정된 단어가 아직 없어요.
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {translationLog.map((m, i) => (
+                      <li
+                        key={m.ts + "-" + i}
+                        className="rounded-xl bg-slate-100 px-3 py-2"
+                      >
+                        <div className="flex items-end justify-between gap-3">
+                          <span className="text-sm text-slate-900">
+                            {m.text}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {new Date(m.ts).toLocaleTimeString("ko-KR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                            {typeof m.conf === "number"
+                              ? ` (${m.conf.toFixed(2)})`
+                              : ""}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div ref={translationEndRef} />
+              </div>
             </section>
           </section>
 
@@ -900,9 +917,9 @@ const startVisionOnRemote = async (videoEl) => {
                       const ts = Number(tsStr);
                       const time = Number.isFinite(ts)
                         ? new Date(ts).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                         : "";
 
                       const isMe = who === "me";
