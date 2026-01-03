@@ -464,4 +464,3 @@ def predict(req: PredictRequest):
         framesReceived=frames_hand,
         candidates=candidates
     )
-
