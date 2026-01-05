@@ -5,7 +5,7 @@ import "./ChatWidget.css";
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
 
-  // ✅ 훅은 무조건 컴포넌트 안!
+  // 훅은 무조건 컴포넌트 안!
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState("camera");
 
@@ -16,7 +16,7 @@ export default function ChatWidget() {
   ]);
   const [selectedCard, setSelectedCard] = useState(null);
 
-  // ✅ 카테고리 목록 서버에서 받아오기 (하드코딩 제거)
+  // 카테고리 목록 서버에서 받아오기 (하드코딩 제거)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -128,7 +128,7 @@ export default function ChatWidget() {
             <div className="cw-title">도움말 챗봇</div>
 
             <div className="cw-tabs">
-              {/* ✅ CATEGORIES 말고 categories state 사용 */}
+              {/* CATEGORIES 말고 categories state 사용 */}
               {categories.map((c) => (
                 <button
                   key={c.key}

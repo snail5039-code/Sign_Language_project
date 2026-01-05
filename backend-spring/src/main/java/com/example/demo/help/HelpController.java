@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/help")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class HelpController {
 
     private final HelpCardService service;
@@ -46,30 +46,89 @@ public class HelpController {
 
     @PostMapping("/chat")
     public ChatResponse chat(@RequestBody ChatRequest req) {
-        String category = (req != null && req.context != null) ? req.context.category : "";
-        String message = (req != null) ? req.message : "";
 
-        var rec = service.recommend(category, message, 3);
+        String category = req != null && req.context != null ? nz(req.context.category) : "";
+        String message  = req != null ? nz(req.message) : "";
+        String lastQ    = req != null && req.context != null ? nz(req.context.lastQuestionType) : "";
 
-        String cardsBrief = rec.stream()
-                .map(c -> "- [" + c.id + "] " + c.title)
-                .reduce("", (a, b) -> a + (a.isEmpty() ? "" : "\n") + b);
+        String msgRaw = message == null ? "" : message.trim();
 
-        String instructions =
-                "너는 수어/화상통화 앱의 고객지원 챗봇이야. 한국어로 짧고 친절하게 답해. " +
-                "아래 추천 카드 목록을 우선 확인하도록 안내해. 모르면 모른다고 말해.";
+        // 1) 빈 입력
+        if (msgRaw.isBlank()) {
+            return mk("cards", "응, 무슨 일이야?", List.of(), "ASK_PROBLEM_TYPE");
+        }
 
-        String aiText = openAi.reply(
-                instructions,
-                "사용자 메시지: " + message + "\n카테고리: " + category + "\n추천 카드:\n" + cardsBrief
+        // 2) 안전 필터(최소)
+        String low = msgRaw.toLowerCase();
+        if (containsAny(low, "자살", "죽고", "죽을", "목숨", "끝내고")) {
+            return mk(
+                    "cards",
+                    "지금은 네 안전이 제일 중요해. 혼자 버티지 말고 주변 도움을 꼭 받아.",
+                    List.of(),
+                    "SAFETY_CHECK"
+            );
+        }
+
+        // 3) AI에게 전부 판단 맡김 (히스토리 포함)
+        OpenAiService.DialogPlan plan;
+        try {
+            List<ChatRequest.HistoryItem> hist = (req != null ? req.history : null);
+            plan = openAi.dialogPlan(msgRaw, category, lastQ, hist, 5);
+        } catch (Exception e) {
+            plan = null;
+        }
+
+        if (plan == null || plan.text == null || plan.text.isBlank()) {
+            return mk(
+                    "cards",
+                    "잠깐 오류가 있었어. 방금 말한 걸 한 번만 더 보내줘!",
+                    List.of(),
+                    "ASK_PROBLEM_TYPE"
+            );
+        }
+
+        String intent = (plan.intent == null || plan.intent.isBlank()) ? "PROBLEM" : plan.intent;
+        String nextQ  = (plan.nextQuestionType == null || plan.nextQuestionType.isBlank())
+                ? "ASK_FOLLOWUP"
+                : plan.nextQuestionType;
+
+        // 4) 잡담/짜증이면 카드 없이 자연스럽게
+        //    (stateEnded=true도 여기서 카드 끊는 용도로 같이 사용)
+        if (plan.stateEnded || "CHITCHAT".equals(intent) || "FRUSTRATION".equals(intent)) {
+            return mk(
+                    "cards",
+                    plan.text,
+                    List.of(),
+                    nextQ
+            );
+        }
+
+        // 5) 문제/환경힌트면 카드 추천
+        var rr = service.recommend(category, msgRaw, 3);
+        var ids = rr.cards.stream().map(c -> c.id).toList();
+
+        return mk(
+                "cards",
+                plan.text,
+                ids,
+                nextQ
         );
+    }
 
-        ChatResponse res = new ChatResponse();
-        res.type = "cards";
-        res.text = (aiText == null || aiText.isBlank())
-                ? "관련 해결 방법을 찾았어! 아래 카드부터 확인해봐."
-                : aiText;
-        res.matched = rec.stream().map(c -> c.id).toList();
-        return res;
+    private static String nz(String s) { return s == null ? "" : s; }
+
+    private static boolean containsAny(String hay, String... needles) {
+        if (hay == null) return false;
+        for (String n : needles) if (hay.contains(n)) return true;
+        return false;
+    }
+
+    private static ChatResponse mk(String type, String text, List<String> matched, String nextQ) {
+        ChatResponse r = new ChatResponse();
+        r.type = type;
+        r.text = text;
+        r.matched = matched;
+        r.nextQuestionType = nextQ;
+        return r;
     }
 }

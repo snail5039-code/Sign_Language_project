@@ -72,3 +72,5 @@ app:
   frontend-redirect-uri: ${FRONTEND_REDIRECT_URI:http://localhost:5173/oauth2/success}
   openai:
     api-key: ${OPENAI_API_KEY}
+  help:
+    vector-cache-path: D:/temp/help-vectors.json

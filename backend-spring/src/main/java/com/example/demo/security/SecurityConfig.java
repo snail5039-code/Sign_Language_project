@@ -35,7 +35,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         return (HttpServletRequest request) -> {
             CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(List.of("http://localhost:5173"));
+            config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
             config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
             config.setAllowedHeaders(List.of("*"));
             config.setAllowCredentials(true);
@@ -62,7 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/members/login").permitAll()
                 .requestMatchers("/api/members/oauth2/login").permitAll() // 추가: 소셜 가입 API 허용
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/help/**").permitAll()
+                .requestMatchers("/api/help/**", "/api/openai/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/boards/**").permitAll()
@@ -90,5 +90,22 @@ public class SecurityConfig {
 
         return http.build();
     }
+    
+//    @Bean
+//    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//            .csrf(csrf -> csrf.disable()) // (개발단계에서 편하게)
+//            .authorizeHttpRequests(auth -> auth
+//                .requestMatchers(
+//                    "/api/help/**",
+//                    "/api/openai/**"   // 너가 따로 만들어뒀으면
+//                ).permitAll()
+//                .anyRequest().authenticated()
+//            )
+//            .oauth2Login(oauth -> {}); // 소셜 로그인 유지
+//
+//        return http.build();
+//    }
+//
 
 }
