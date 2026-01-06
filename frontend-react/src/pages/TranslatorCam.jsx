@@ -113,7 +113,7 @@ export default function TranslatorCam() {
 
     const ctx = canvas.getContext("2d");
 
-    const loop = async () => {
+    const loop = () => {
       const v = videoRef.current;
       const c = canvasRef.current;
       if (!v || !c) return;
@@ -147,7 +147,7 @@ export default function TranslatorCam() {
       }
 
       // 3) feature 126 (Left63 + Right63)
-      const feat126 = buildFrame126(hands, handednesses);
+      const feat126 = buildFrame126(hands, handednesses, w, h);
 
       // debug
       if (hands.length > 0) {
@@ -184,8 +184,8 @@ export default function TranslatorCam() {
       }
 
       // 5) 서버 전송(녹화 아닐 때만) - 5프레임마다
-      if (!recordingRef.current && framesRef.current % 5 === 0) {
-        await sendToServer(feat126);
+      if (!recordingRef.current && hands.length > 0 && framesRef.current % 5 === 0) {
+        sendToServer(feat126);
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -253,7 +253,7 @@ export default function TranslatorCam() {
         label: labelRef.current.trim(),
         frames: seq, // (T,126)
         featureDim: 126,
-        order: "Left63+Right63",
+        order: "Right63+Left63",
         createdAt: Date.now(),
     };
 
@@ -434,22 +434,40 @@ function buildFrame126(hands, handednesses) {
     const name = handednesses?.[i]?.[0]?.categoryName || "";
     const s = String(name).toLowerCase();
 
-    if (s === "left" && !left63) left63 = normalizeTo63(lm, "Left");
-    if (s === "right" && !right63) right63 = normalizeTo63(lm, "Right");
+    if (s === "left" && !left63) left63 = to63Norm(lm, "left");
+    if (s === "right" && !right63) right63 = to63Norm(lm, "right");
   }
 
   if (!left63) left63 = ZERO63;
   if (!right63) right63 = ZERO63;
 
-  return [...left63, ...right63]; // 126
+  return [...right63, ...left63]; // 126
 }
 
 // 21점 xyz => 63 (wrist 기준 / scale 정규화, 왼손 x 미러링)
-function normalizeTo63(landmarks, handedness) {
-  const w = landmarks[0];
-  const m = landmarks[9]; // 중지 MCP
-  const scale =
-    Math.hypot(m.x - w.x, m.y - w.y, m.z - w.z) || 1;
+// function normalizeTo63(landmarks, handedness) {
+//   const w = landmarks[0];
+//   const m = landmarks[9]; // 중지 MCP
+//   const scale =
+//     Math.hypot(m.x - w.x, m.y - w.y, m.z - w.z) || 1;
+
+//   const isLeft = String(handedness).toLowerCase() === "left";
+//   const out = [];
+
+//   for (const p of landmarks) {
+//     let x = (p.x - w.x) / scale;
+//     let y = (p.y - w.y) / scale;
+//     let z = (p.z - w.z) / scale;
+//     if (isLeft) x = -x; // ✅ 왼손 미러링
+//     out.push(round6(x), round6(y), round6(z));
+//   }
+//   return out;
+// }
+
+function to63Norm(landmarks, handedness) {
+  const w = landmarks[0];      // wrist
+  const m = landmarks[9];      // middle MCP
+  const scale = Math.hypot(m.x - w.x, m.y - w.y) || 1e-6;
 
   const isLeft = String(handedness).toLowerCase() === "left";
   const out = [];
@@ -457,12 +475,14 @@ function normalizeTo63(landmarks, handedness) {
   for (const p of landmarks) {
     let x = (p.x - w.x) / scale;
     let y = (p.y - w.y) / scale;
-    let z = (p.z - w.z) / scale;
+    let z = 0;
     if (isLeft) x = -x; // ✅ 왼손 미러링
     out.push(round6(x), round6(y), round6(z));
   }
   return out;
 }
+
+
 
 function round6(v) {
   return Math.round(v * 1e6) / 1e6;

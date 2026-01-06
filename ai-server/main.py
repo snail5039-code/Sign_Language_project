@@ -11,6 +11,11 @@ import torch
 import torch.nn as nn
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from fastapi import FastAPI
+from hands_only import router as hands_router
+
+app = FastAPI()
+app.include_router(hands_router)
 
 # =========================
 # 설정
@@ -104,6 +109,9 @@ class PredictResponse(BaseModel):
         allow_population_by_field_name = True
 
 app = FastAPI()
+
+from hands_only import router as hands_router
+app.include_router(hands_router)
 
 # =========================
 # Utils

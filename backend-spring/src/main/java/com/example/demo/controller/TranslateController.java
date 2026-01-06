@@ -40,9 +40,32 @@ public class TranslateController {
 
 	@PostMapping("/api/translate")
 	public TranslateResponse translate(@RequestBody Map<String, Object> body) {
+		Object featsObj = body.get("features");
+	    int featLen = (featsObj instanceof List) ? ((List<?>) featsObj).size() : -1;
 
+	    double min = 0, max = 0;
+	    if (featsObj instanceof List<?> list && !list.isEmpty()) {
+	        min = Double.POSITIVE_INFINITY;
+	        max = Double.NEGATIVE_INFINITY;
+	        for (Object o : list) {
+	            if (o instanceof Number n) {
+	                double v = n.doubleValue();
+	                if (v < min) min = v;
+	                if (v > max) max = v;
+	            }
+	        }
+	        if (!Double.isFinite(min)) min = 0;
+	        if (!Double.isFinite(max)) max = 0;
+	    }
+
+	    System.out.println("[SPRING] incoming: featLen=" + featLen
+	            + " min=" + min + " max=" + max
+	            + " framesReceived=" + body.get("framesReceived")
+	            + " mode=" + body.get("mode"));
 		// ✅ status + raw를 무조건 찍고, 절대 null return 금지
-		TranslateResponse res = webClient.post().uri("/predict").contentType(MediaType.APPLICATION_JSON)
+		// TranslateResponse res =
+		// webClient.post().uri("/predict").contentType(MediaType.APPLICATION_JSON)
+		TranslateResponse res = webClient.post().uri("/hands/predict_frame").contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_JSON).bodyValue(body)
 				.exchangeToMono((ClientResponse resp) -> resp.bodyToMono(String.class).defaultIfEmpty("").map(raw -> {
 					System.out.println("[PY] status = " + resp.statusCode());

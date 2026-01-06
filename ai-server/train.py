@@ -38,7 +38,30 @@ def set_seed(seed: int = 42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+def hand_abs_to_wrist_norm(hand: np.ndarray) -> np.ndarray:
+    """
+    hand: (T,2,21,3)  (x,y,z/score whatever)
+    return: (T,126) wrist 기준 정규화 + 왼손 x 미러링
+    - 채널 순서: 0=오른손, 1=왼손 (너 npy 규칙 그대로)
+    """
+    T = hand.shape[0]
+    xy = hand[..., :2].astype(np.float32)             # (T,2,21,2)
 
+    wrist = xy[:, :, 0:1, :]                          # (T,2,1,2) wrist
+    mcp9  = xy[:, :, 9:10, :]                         # (T,2,1,2) middle MCP
+    scale = np.linalg.norm(mcp9 - wrist, axis=-1, keepdims=True)  # (T,2,1,1)
+    scale = np.maximum(scale, 1e-6)
+
+    rel = (xy - wrist) / scale                        # (T,2,21,2)
+
+    # ✅ 왼손(인덱스 1) x 미러링 (오른손 기준으로 정렬)
+    rel[:, 1, :, 0] *= -1
+
+    # z는 0으로 통일
+    z = np.zeros((T, 2, 21, 1), dtype=np.float32)
+    rel3 = np.concatenate([rel, z], axis=-1)          # (T,2,21,3)
+
+    return rel3.reshape(T, -1)                        # (T,126)
 # ------------------------------------------------------------
 # 1) Dataset 클래스: 폴더에서 npy를 읽어오는 역할
 # ------------------------------------------------------------
@@ -61,7 +84,7 @@ class NpyDataset(Dataset):
       xxx.hand.npy  <->  xxx_face.npy
     """
 
-    def __init__(self, root_dir, label_to_idx, use_face: bool = True):
+    def __init__(self, root_dir, label_to_idx, use_face: bool = True, hand_norm: str = "wrist"):
         # root_dir가 str로 들어와도 Path로 변환 (Path / 연산 위해)
         root_dir = Path(root_dir)
 
@@ -70,6 +93,7 @@ class NpyDataset(Dataset):
             label_to_idx = json.load(open(label_to_idx, "r", encoding="utf-8"))
 
         self.use_face = use_face
+        self.hand_norm = hand_norm
         self.samples = []  # (hand_npy_path, label_idx) 목록
 
         # label_to_idx에 있는 라벨 폴더들을 순회하면서 *.hand.npy를 모은다
@@ -99,9 +123,13 @@ class NpyDataset(Dataset):
         # ------------------------------------------------------------
         hand = np.load(hand_path).astype(np.float32)
         T = hand.shape[0]             # 프레임 수
-        hand = hand.reshape(T, -1)    # (T, 2, 21, 3) -> (T, 126)
-
-        # 기본 입력은 "손" (얼굴을 쓸지 말지는 아래 옵션에 따라)
+        
+        # 손 전처리모드
+        if self.hand_norm == "wrist":
+            hand = hand_abs_to_wrist_norm(hand)
+        else:
+            hand = hand.reshape(T, -1).astype(np.float32)
+        
         x = hand.astype(np.float32)
 
         # ------------------------------------------------------------
@@ -138,7 +166,9 @@ class NpyDataset(Dataset):
         x = torch.from_numpy(x).float()
 
         # ✅ 값 범위가 너무 크면 학습이 불안정해질 수 있어서 스케일링
-        x = x / 1000.0
+        
+        if self.hand_norm != "wrist":
+            x = x / 1000.0
 
         y = torch.tensor(y, dtype=torch.long)
         return x, y
@@ -239,7 +269,6 @@ def evaluate(model, loader, device):
     acc5 = correct5 / max(1, total)
     return acc1, acc5
 
-
 def main():
     ap = argparse.ArgumentParser()
 
@@ -251,6 +280,9 @@ def main():
 
     # ✅ 핵심: 손만/손+얼굴 토글 (0이면 손만, 1이면 손+얼굴)
     ap.add_argument("--use_face", type=int, default=1, help="1=손+얼굴, 0=손만")
+    ap.add_argument("--hand_norm", type=str, default="wrist",
+                choices=["wrist", "none"],
+                help="wrist=손목기준 정규화(프론트와 동일), none=원본 절대좌표")
 
     # ✅ 핵심: best 모델 저장할지 여부
     ap.add_argument("--save_best", type=int, default=1, help="1=best_model 저장, 0=저장 안함")
@@ -295,8 +327,9 @@ def main():
     # ------------------------------------------------------------
     # (2) Dataset 생성
     # ------------------------------------------------------------
-    train_ds = NpyDataset(train_dir, label_to_idx, use_face=args.use_face)
-    val_ds = NpyDataset(val_dir, label_to_idx, use_face=args.use_face)
+    train_ds = NpyDataset(train_dir, label_to_idx, use_face=args.use_face, hand_norm=args.hand_norm)
+    val_ds = NpyDataset(val_dir, label_to_idx, use_face=args.use_face, hand_norm=args.hand_norm)
+
 
     print("train samples:", len(train_ds))
     print("val samples:  ", len(val_ds))
@@ -440,19 +473,38 @@ def main():
     # ------------------------------------------------------------
     # (7) 저장: 마지막 모델 + 라벨 맵
     # ------------------------------------------------------------
-    out_model = Path("model.pth")
-    out_map = Path("label_map.json")
+    out_dir = Path("current")
+    out_dir.mkdir(exist_ok=True)
 
-    torch.save(model.state_dict(), out_model)
+    out_model_last = out_dir / "model.pth"
+    out_best = out_dir / "best_model.pth"
+    out_map = out_dir / "label_map.json"
+    out_text = out_dir / "label_to_text.json"
 
-    # label_map.json은 "idx -> label" 형태로 저장(너가 기존에 쓰던 방식 유지)
+    # 마지막 모델
+    torch.save(model.state_dict(), out_model_last)
+
+    # best(top1) 모델도 best_model.pth로 저장(서버가 이거 읽게)
+    if args.save_best and best_path_top1.exists():
+        import shutil
+        shutil.copyfile(best_path_top1, out_best)
+    else:
+        # best 저장 안 했으면 마지막 모델을 best로라도 복사
+        import shutil
+        shutil.copyfile(out_model_last, out_best)
+
+    # label_map.json (idx -> label)
     out_map.write_text(json.dumps(idx_to_label, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print("saved:", out_model)
+    # label_to_text.json (일단 label 그대로 text로 매핑)
+    label_to_text = {lab: lab for lab in label_to_idx.keys()}
+    out_text.write_text(json.dumps(label_to_text, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print("saved:", out_model_last)
+    print("saved:", out_best)
     print("saved:", out_map)
-    if args.save_best:
-        print("saved:", best_path_top1)
-        print("saved:", best_path_top5)
+    print("saved:", out_text)
+
 
 
 if __name__ == "__main__":
