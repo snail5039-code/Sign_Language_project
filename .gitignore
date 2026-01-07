@@ -1,1 +1,133 @@
+# =========================
+# OS / IDE / Editor
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Eclipse / Spring tooling
 /.metadata/
+.recommenders/
+.settings/
+.project
+.classpath
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# VSCode
+.vscode/
+
+# =========================
+# Logs / Temp
+# =========================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# =========================
+# Python
+# =========================
+# venv
+.venv/
+venv/
+ai-server/.venv/
+
+# cache / build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+dist/
+frontend-react/dist/
+frontend-react/node_modules/
+
+# =========================
+# AI datasets (BIG) - DO NOT COMMIT
+# =========================
+# raw / split / npy / derived datasets
+ai-server/dataset_raw/
+ai-server/dataset_raw_all/
+ai-server/dataset_raw_small/
+ai-server/dataset_raw_tiny/
+
+ai-server/dataset_split/
+ai-server/dataset_split_tiny/
+ai-server/dataset_split_small/
+ai-server/dataset_split_word16_sen10/
+
+ai-server/dataset_npy/
+ai-server/data_npy/
+ai-server/data_npy_word/
+ai-server/data_npy_word_top*/
+ai-server/dataset_top*_split/
+ai-server/dataset_split_word/
+
+# ignore all npy anywhere
+*.npy
+
+# =========================
+# AI runs / artifacts (optional)
+# =========================
+ai-server/runs/
+ai-server/wandb/
+ai-server/logs/
+ai-server/artifacts/
+
+# =========================
+# Model weights
+# =========================
+# ignore all weights by default
+*.pth
+*.pt
+*.onnx
+
+# ✅ BUT: allow only the serving model in current/
+!ai-server/current/*.pth
+!ai-server/current/*.pt
+!ai-server/current/label_map.json
+
+
+ai-server/archive/
+ai-server/samples/
+backend-spring/.metadata/
+
+# ai-server 내부 data 통째로 제외 (가장 확실)
+ai-server/data/
+ai-server/data/**
+ai-server/logs/
+
+# --- Python venv (torch/numpy 등 site-packages 포함) ---
+ai-server/.venv*/
+.venv*/
+venv/
+env/
+
+# --- Python caches ---
+__pycache__/
+*.py[cod]
+
+# --- Spring/Java build outputs ---
+backend-spring/bin/
+backend-spring/target/
+backend-spring/build/
+*.class
+
+# --- (선택) venv export 파일을 커밋 안 할 거면 ---
+ai-server/requirements.venv*.txt
