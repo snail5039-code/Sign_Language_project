@@ -15,7 +15,7 @@ import com.example.demo.dto.Comment;
 public interface CommentDao {
 
     @Select("""
-                SELECT c.*, m.name as writerName
+                SELECT c.*, m.nickname as writerName
                 FROM comment c
                 JOIN member m ON c.memberId = m.id
                 WHERE c.relTypeCode = #{relTypeCode}

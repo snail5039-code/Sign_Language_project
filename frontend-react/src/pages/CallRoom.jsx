@@ -418,7 +418,7 @@ export default function CallRoom() {
         // local video에 내 카메라 영상 출력
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          await localVideoRef.current.play().catch(() => {});
+          await localVideoRef.current.play().catch(() => { });
         }
 
         // ✅ WebRTC PC 만들고(전화기) 로컬 트랙을 PC에 꽂아줌(내 영상 송신 준비)
@@ -605,7 +605,7 @@ export default function CallRoom() {
     return () => {
       try {
         ws.close();
-      } catch {}
+      } catch { }
       if (wsRef.current === ws) wsRef.current = null;
     };
   }, [roomId]);
@@ -729,253 +729,181 @@ export default function CallRoom() {
 
   // UI
   return (
-    <div className="min-h-screen bg-white">
-      {/* 상단 여백 + 방 정보 헤더 */}
-      <header className="mx-auto max-w-6xl px-6 pt-8 pb-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <div className="text-xs text-slate-500">영상통화 방</div>
-            <div className="text-sm hidden text-slate-600">
-              media: {mediaStatus}
-            </div>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900">{roomId}</h1>
-            <div className="mt-1 text-sm text-slate-600">
-              상태: <span className="font-semibold">{wsStatus}</span>
-              <span className="mx-2 text-slate-300">|</span>
-              <span className="text-slate-500">상대 연결되면 화면 표시</span>
-            </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* 상단 헤더 */}
+      <header className="h-20 bg-white/90 backdrop-blur-xl border-b border-slate-200/50 px-8 flex items-center justify-between z-40">
+        <div className="flex items-center gap-4">
+          <button onClick={leaveRoom} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">영상통화</h1>
+          <div className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black border border-indigo-100">
+            ROOM: {roomId}
           </div>
+        </div>
 
-          {/* 우측 액션 버튼(원하면 유지/삭제) */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setRecvCaption("")}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              채팅 비우기
-            </button>
-            <button
-              onClick={testTranslateSample}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              샘플 번역 테스트
-            </button>
-
-            <button
-              onClick={leaveRoom} // ✅ 네 코드에 있는 나가기 함수로
-              className="rounded-xl border border-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-            >
-              나가기
-            </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-black uppercase tracking-widest">{wsStatus}</span>
           </div>
+          <button
+            onClick={testTranslateSample}
+            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-50 transition-all shadow-sm"
+          >
+            샘플 테스트
+          </button>
+          <button
+            onClick={leaveRoom}
+            className="px-6 py-2.5 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+          >
+            통화 종료
+          </button>
         </div>
       </header>
 
-      {/* 본문 */}
-      <main className="mx-auto max-w-6xl px-6 pb-10">
-        <div className="flex gap-6">
-          {/* 왼쪽: 상대방 화면 */}
-          <section className="flex-1">
-            <div className="rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900">
-                  상대방
-                </span>
-                <span className="text-xs text-slate-500">Remote</span>
-              </div>
-              <div className="p-4 min-h-[120px]">
+      <div className="flex-1 flex overflow-hidden">
+        {/* 왼쪽: 메인 영상 및 번역 로그 */}
+        <main className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto">
+          {/* 영상 영역 */}
+          <div className="relative flex-1 glass rounded-[3rem] overflow-hidden border-slate-100 shadow-2xl">
+            {/* 상대방 화면 (Full) */}
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover bg-slate-900"
+            />
 
-                {/* 메타는 본문 아래에 */}
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-                  <span className="rounded-full border px-2 py-1">
-                    mode: <b>{liveMeta.mode}</b>
-                  </span>
-                  <span className="rounded-full border px-2 py-1">
-                    frames: <b>{liveMeta.frames}</b>
-                  </span>
-                  <span className="rounded-full border px-2 py-1">
-                    send: <b>{liveMeta.sendFrames}</b>
-                  </span>
-                  <span className="rounded-full border px-2 py-1">
-                    hand: <b>{handDetected ? "✅" : "❌"}</b>
-                  </span>
-                  <span className="rounded-full border px-2 py-1">
-                    face: <b>{faceDetected ? "✅" : "❌"}</b>
-                  </span>
-                  <span className="rounded-full border px-2 py-1">
-                    conf: <b>{liveMeta.conf.toFixed(2)}</b>
-                  </span>
-                  <span
-                    className={`rounded-full border px-2 py-1 ${liveMeta.inFlight ? "bg-yellow-50" : ""
-                      }`}
-                  >
-                    inFlight: <b>{liveMeta.inFlight ? "ON" : "OFF"}</b>
-                  </span>
-                  {liveMeta.err && (
-                    <span className="rounded-full border px-2 py-1 bg-red-50">
-                      err: <b>{liveMeta.err}</b>
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="aspect-video bg-black">
-                <video
-                  ref={remoteVideoRef} // ✅ 네 remote ref로
-                  autoPlay
-                  playsInline
-                  className="h-full w-full object-cover"
-                />
+            {/* 내 화면 (PIP) */}
+            <div className="absolute bottom-8 right-8 w-72 aspect-video glass rounded-3xl overflow-hidden border-2 border-white/50 shadow-2xl animate-fade-in">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover bg-slate-800"
+              />
+              <div className="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[10px] font-black text-white uppercase tracking-widest">
+                ME
               </div>
             </div>
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900">
-                  실시간 수어 번역
-                </span>
-                <span className="text-xs text-slate-500">Live</span>
+
+            {/* 상태 오버레이 */}
+            <div className="absolute top-8 left-8 flex flex-col gap-2">
+              <div className="glass px-4 py-2 rounded-2xl flex items-center gap-3 border-white/30">
+                <div className={`w-2 h-2 rounded-full ${handDetected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                <span className="text-xs font-black text-slate-700">HAND DETECTION</span>
               </div>
-
-              <div className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-900">
-                {translatedText}
+              <div className="glass px-4 py-2 rounded-2xl flex items-center gap-3 border-white/30">
+                <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                <span className="text-xs font-black text-slate-700">FACE MESH</span>
               </div>
-              <div className="h-[180px] overflow-auto rounded-lg border bg-white p-3">
-                {translationLog.length === 0 ? (
-                  <div className="text-sm text-slate-400">
-                    확정된 단어가 아직 없어요.
-                  </div>
-                ) : (
-                  <ul className="space-y-2">
-                    {translationLog.map((m, i) => (
-                      <li
-                        key={m.ts + "-" + i}
-                        className="rounded-xl bg-slate-100 px-3 py-2"
-                      >
-                        <div className="flex items-end justify-between gap-3">
-                          <span className="text-sm text-slate-900">
-                            {m.text}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {new Date(m.ts).toLocaleTimeString("ko-KR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                            {typeof m.conf === "number"
-                              ? ` (${m.conf.toFixed(2)})`
-                              : ""}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div ref={translationEndRef} />
-              </div>
-            </section>
-          </section>
+            </div>
+          </div>
 
-          {/* 오른쪽: 내 화면 + 채팅 */}
-          <aside className="w-[340px] flex flex-col gap-6">
-            {/* 내 화면 */}
-            <section className="rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900">
-                  내 화면
-                </span>
-                <span className="text-xs text-slate-500">Local</span>
-              </div>
+          {/* 수어 번역 로그 영역 */}
+          <section className="h-64 glass rounded-[2.5rem] p-8 flex flex-col border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                수어 번역
+                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest">REAL-TIME</span>
+              </h2>
+              <button
+                onClick={() => setTranslationLog([])}
+                className="text-xs font-black text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                로그 비우기
+              </button>
+            </div>
 
-              <div className="aspect-video bg-black">
-                <video
-                  ref={localVideoRef} // ✅ 네 local ref로
-                  autoPlay
-                  muted
-                  playsInline
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </section>
-
-            {/* 채팅창 */}
-            <section className="rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-[420px]">
-              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900">
-                  채팅
-                </span>
-                <span className="text-xs text-slate-500">Caption</span>
-              </div>
-
-              {/* 리스트 */}
-              <div className="flex-1 overflow-auto px-3 py-3">
-                <ul className="space-y-2">
-                  {(recvCaption || "")
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean)
-                    .map((line, i) => {
-                      const [who, tsStr, ...rest] = line.split("|");
-                      const text = rest.join("|");
-                      const ts = Number(tsStr);
-                      const time = Number.isFinite(ts)
-                        ? new Date(ts).toLocaleTimeString("ko-KR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                        : "";
-
-                      const isMe = who === "me";
-
-                      return (
-                        <li
-                          key={i}
-                          className={[
-                            "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
-                            isMe
-                              ? "ml-auto bg-slate-900 text-white"
-                              : "mr-auto bg-slate-100 text-slate-900",
-                          ].join(" ")}
-                        >
-                          <div className="flex items-end justify-between gap-3">
-                            <span>{text}</span>
-                            {time && (
-                              <span
-                                className={
-                                  isMe
-                                    ? "text-xs text-white/70"
-                                    : "text-xs text-slate-500"
-                                }
-                              >
-                                {time}
-                              </span>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                </ul>
-              </div>
-
-              {/* 입력 */}
-              <div className="border-t border-slate-200 p-3">
-                <div className="flex gap-2">
-                  <input
-                    value={sendText}
-                    onChange={(e) => setSendText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendCaption()}
-                    className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="메시지 입력..."
-                  />
-                  <button
-                    onClick={sendCaption}
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99]"
-                  >
-                    전송
-                  </button>
+            <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+              {translationLog.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-slate-300 font-bold italic">
+                  번역된 단어가 여기에 표시됩니다...
                 </div>
-              </div>
-            </section>
-          </aside>
-        </div>
-      </main>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {translationLog.map((m, i) => (
+                    <div
+                      key={m.ts + "-" + i}
+                      className="px-5 py-3 bg-white border border-slate-100 rounded-2xl shadow-sm animate-scale-in flex items-center gap-3"
+                    >
+                      <span className="text-base font-black text-slate-700">{m.text}</span>
+                      <span className="text-[10px] font-black text-slate-300">
+                        {new Date(m.ts).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  ))}
+                  <div ref={translationEndRef} />
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+
+        {/* 오른쪽: 실시간 채팅 사이드바 */}
+        <aside className="w-[400px] bg-white border-l border-slate-200 flex flex-col">
+          <div className="p-8 border-b border-slate-100">
+            <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center justify-between">
+              실시간 채팅
+              <span className="text-[10px] font-black bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full">LIVE</span>
+            </h2>
+          </div>
+
+          {/* 채팅 메시지 리스트 */}
+          <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+            {(recvCaption || "")
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .map((line, i) => {
+                const [who, tsStr, ...rest] = line.split("|");
+                const text = rest.join("|");
+                const ts = Number(tsStr);
+                const time = Number.isFinite(ts)
+                  ? new Date(ts).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
+                  : "";
+                const isMe = who === "me";
+
+                return (
+                  <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[90%] p-4 rounded-2xl font-bold text-sm shadow-sm ${isMe
+                      ? 'bg-indigo-600 text-white rounded-tr-none'
+                      : 'bg-slate-100 text-slate-700 rounded-tl-none'
+                      }`}>
+                      {text}
+                    </div>
+                    <span className="text-[10px] font-black text-slate-300 mt-1 px-1">{time}</span>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* 채팅 입력창 */}
+          <div className="p-8 border-t border-slate-100">
+            <div className="relative">
+              <input
+                value={sendText}
+                onChange={(e) => setSendText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendCaption()}
+                placeholder="메시지를 입력하세요..."
+                className="w-full pl-6 pr-16 py-5 bg-slate-100 border-none rounded-[2rem] font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              />
+              <button
+                onClick={sendCaption}
+                className="absolute right-2 top-2 bottom-2 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

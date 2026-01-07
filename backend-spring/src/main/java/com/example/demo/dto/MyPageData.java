@@ -15,6 +15,10 @@ public class MyPageData {
     private List<Comment> myComments;
     private List<Article> likedArticles;
 
+    private boolean nicknameChangeAllowed;
+    private String nextNicknameChangeDate;
+    private long nicknameDaysLeft;
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

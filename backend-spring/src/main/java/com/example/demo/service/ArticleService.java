@@ -147,7 +147,12 @@ public class ArticleService {
 	}
 
 	public List<Article> showList(int boardId, int limitFrom, int itemsInAPage, String searchType,
-			String searchKeyword) {
-		return articleDao.getArticles(boardId, itemsInAPage, limitFrom, searchType, searchKeyword);
+			String searchKeyword, String sortType) {
+		return articleDao.getArticles(boardId, itemsInAPage, limitFrom, searchType, searchKeyword, sortType);
+	}
+
+	public Integer increaseHit(int id) {
+		articleDao.increaseHit(id);
+		return articleDao.getHit(id);
 	}
 }

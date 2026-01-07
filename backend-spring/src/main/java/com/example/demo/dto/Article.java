@@ -17,6 +17,8 @@ public class Article {
 	private Integer boardId;
 	private Integer memberId;
 	private String writerName;
+	private Integer hit;
+	private Integer commentCount;
 	private Boolean canModify;
 	private Boolean canDelete;
 	private Integer likeCount;

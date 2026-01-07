@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,9 +54,11 @@ public class ArticleController {
             @RequestParam(defaultValue = "1") int boardId,
             @RequestParam(defaultValue = "1") int cPage,
             @RequestParam(defaultValue = "") String searchKeyword,
-            @RequestParam(defaultValue = "title") String searchType) {
+            @RequestParam(defaultValue = "title") String searchType,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "latest") String sortType) {
 
-        int itemsInAPage = 10;
+        int itemsInAPage = Math.max(1, pageSize);
 
         // 1. 디버깅 로그 (콘솔에서 articlesCnt가 9가 맞는지 꼭 확인하세요!)
         int articlesCnt = this.articleService.getArticlesCnt(boardId, searchType, searchKeyword.trim());
@@ -87,7 +90,7 @@ public class ArticleController {
 
         // 5. 실제 리스트 가져오기
         List<Article> articles = this.articleService.showList(boardId, limitFrom, itemsInAPage, searchType,
-                searchKeyword.trim());
+                searchKeyword.trim(), sortType);
 
         // 최종 데이터 확인 로그
         System.out.println(
@@ -101,6 +104,12 @@ public class ArticleController {
                 "begin", begin,
                 "end", end,
                 "boardId", boardId);
+    }
+
+    @PatchMapping("/boards/{id}/hit")
+    public Map<String, Object> increaseHit(@PathVariable int id) {
+        Integer hit = articleService.increaseHit(id);
+        return Map.of("hit", hit);
     }
 
     @GetMapping("/boards/{id}")

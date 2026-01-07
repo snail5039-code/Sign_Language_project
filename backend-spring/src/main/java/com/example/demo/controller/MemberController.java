@@ -24,9 +24,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
-@RequestMapping("/api/members") // 모든 요청은 /api/members로 시작
+@RequestMapping("/api/members")
 public class MemberController {
 
     private final MemberService memberService;
@@ -40,20 +39,29 @@ public class MemberController {
         this.refreshTokenDao = refreshTokenDao;
     }
 
-    // 1. 국적 목록 (회원가입 페이지용)
     @GetMapping("/countries")
     public List<Country> getCountries() {
         return memberService.countries();
     }
 
-    // 2. 일반 회원가입
     @PostMapping("/join")
     public Map<String, Object> join(@RequestBody Member member) {
         this.memberService.join(member);
         return Map.of("message", "회원가입 완료");
     }
 
-    // 3. 일반 로그인
+    @GetMapping("/checkNickname")
+    public Map<String, Object> checkNickname(@RequestParam String nickname) {
+        boolean exists = memberService.isNicknameTaken(nickname);
+        return Map.of("result", exists ? "fail" : "success");
+    }
+
+    @GetMapping("/checkLoginId")
+    public Map<String, Object> checkLoginId(@RequestParam String loginId) {
+        boolean exists = memberService.isLoginIdTaken(loginId);
+        return Map.of("result", exists ? "fail" : "success");
+    }
+
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> body, HttpServletResponse response) {
         String loginId = body.getOrDefault("loginId", "");
@@ -64,13 +72,9 @@ public class MemberController {
         }
 
         Member member = memberService.login(loginId, loginPw);
-        System.out.println(loginId);
-        System.out.println(loginPw);
         return generateTokens(member, response);
     }
 
-    // 4. 소셜 로그인 후처리 (Security SuccessHandler에서 넘어오는 로직 대비)
-    // 이 메서드는 프론트에서 소셜 로그인 성공 후 유저 정보를 다시 확인할 때 사용 가능합니다.
     @GetMapping("/oauth2/login")
     public Map<String, Object> oauthLogin(@AuthenticationPrincipal OAuth2User principal,
             @RequestParam("provider") String provider,
@@ -82,7 +86,15 @@ public class MemberController {
         OAuth2UserInfo info = switch (provider.toLowerCase()) {
             case "google" -> new GoogleUserInfo(attributes);
             case "kakao" -> new KakaoUserInfo(attributes);
-            case "naver" -> new NaverUserInfo((Map<String, Object>) attributes.get("response"));
+            case "naver" -> {
+                Object responseObj = attributes.get("response");
+                if (responseObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> responseMap = (Map<String, Object>) responseObj;
+                    yield new NaverUserInfo(responseMap);
+                }
+                throw new IllegalStateException("Invalid Naver response format");
+            }
             default -> throw new IllegalArgumentException("Unsupported provider");
         };
 
@@ -92,19 +104,15 @@ public class MemberController {
                 info.getName(),
                 info.getProviderKey());
 
-        System.out.println(provider);
-        System.out.println(principal);
         return generateTokens(m, response);
     }
 
-    // 5. 현재 로그인된 유저 정보 확인 (AuthProvider 로딩 시 필수)
     @GetMapping("/me")
     public Map<String, Object> getCurrentMember(@AuthenticationPrincipal Object principal) {
         if (principal == null || principal.toString().equals("anonymousUser")) {
-            return Map.of("logined", false);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인 필요");
         }
 
-        // principal이 memberId(Integer)인 경우 DB에서 최신 정보 조회
         if (principal instanceof Integer) {
             Member member = memberService.findById((Integer) principal);
             return Map.of("logined", true, "user", member);
@@ -113,7 +121,6 @@ public class MemberController {
         return Map.of("logined", true, "user", principal);
     }
 
-    // 6. 로그아웃 (쿠키 삭제)
     @PostMapping("/logout")
     public Map<String, Object> logout(HttpServletResponse response) {
         Cookie cookie = new Cookie("refreshToken", "");
@@ -124,7 +131,6 @@ public class MemberController {
         return Map.of("message", "로그아웃 완료");
     }
 
-    // [추가] 7. 아이디 찾기
     @PostMapping("/findLoginId")
     public Map<String, Object> findLoginId(@RequestBody Map<String, String> body) {
         String name = body.get("name");
@@ -137,7 +143,6 @@ public class MemberController {
         return Map.of("message", "입력하신 이메일로 아이디를 전송했습니다.");
     }
 
-    // [추가] 8. 비밀번호 찾기 (임시 발급)
     @PostMapping("/findLoginPw")
     public Map<String, Object> findLoginPw(@RequestBody Map<String, String> body) {
         String loginId = body.get("loginId");
@@ -150,9 +155,28 @@ public class MemberController {
         return Map.of("message", "입력하신 이메일로 임시 비밀번호를 전송했습니다.");
     }
 
-    // [공통 로직] 토큰 생성 및 리프레시 토큰 쿠키 저장
+    @PostMapping("/sendVerificationCode")
+    public Map<String, Object> sendVerificationCode(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이메일을 입력해주세요.");
+        }
+        memberService.sendVerificationCode(email.trim());
+        return Map.of("message", "인증 코드가 발송되었습니다.");
+    }
+
+    @PostMapping("/verifyCode")
+    public Map<String, Object> verifyCode(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String code = body.get("code");
+        if (email == null || code == null || email.isBlank() || code.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이메일과 인증 코드를 입력해주세요.");
+        }
+        memberService.verifyCode(email.trim(), code.trim());
+        return Map.of("message", "이메일 인증이 완료되었습니다.");
+    }
+
     private Map<String, Object> generateTokens(Member member, HttpServletResponse response) {
-        // DB에 저장된 실제 role 사용 (ROLE_ 접두사 필요 여부 확인)
         String role = member.getRole();
         if (role != null && !role.startsWith("ROLE_")) {
             role = "ROLE_" + role;
@@ -161,10 +185,8 @@ public class MemberController {
         String accessToken = jwtTokenProvider.createAccessToken(member.getId(), member.getEmail(), role);
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getId());
 
-        // DB에 리프레시 토큰 저장
         refreshTokenDao.upsert(member.getId(), refreshToken);
 
-        // 쿠키 설정
         Cookie cookie = new Cookie("refreshToken", refreshToken);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
@@ -177,8 +199,8 @@ public class MemberController {
                 "name", member.getName(),
                 "role", member.getRole());
     }
-    
-    @GetMapping("mypage")
+
+    @GetMapping("/mypage")
     public MyPageData getMyPage(Authentication auth) {
         if (auth == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인 필요");
@@ -189,14 +211,17 @@ public class MemberController {
 
     @PutMapping("/modify/{id}")
     public Map<String, Object> modify(@PathVariable int id, @RequestBody Member member, Authentication auth) {
-
+        System.out.println("[MemberController] modify id=" + id + ", member=" + member);
         if (auth == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
 
-        Integer loginMemberId = (Integer) auth.getPrincipal(); // JwtTokenProvider가 principal을 Integer로 넣는 전제
-        member.setId(id);
+        Integer loginMemberId = (Integer) auth.getPrincipal();
+        if (loginMemberId != id) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "권한이 없습니다.");
+        }
 
+        member.setId(id);
         this.memberService.memberModify(member, id);
 
         return Map.of("message", "수정완료");
@@ -204,15 +229,15 @@ public class MemberController {
 
     @DeleteMapping("/delete/{id}")
     public Map<String, Object> delete(@PathVariable int id, Authentication auth) {
-
         if (auth == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
-
         Integer loginMemberId = (Integer) auth.getPrincipal();
+        if (loginMemberId != id) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "권한이 없습니다.");
+        }
         memberService.memberDelete(id);
-
         return Map.of("message", "삭제완료");
     }
-    
+
 }

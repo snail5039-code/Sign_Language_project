@@ -1,107 +1,46 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import HomeSidebar from "../components/home/HomeSidebar";
 
 export default function Home() {
+  const languages = [
+    { name: "영어", code: "en" },
+    { name: "한국어", code: "ko" },
+    { name: "일본어", code: "ja" }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        {/* 헤더 */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            메인
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            원하는 기능 페이지로 이동해보자.
-          </p>
-        </div>
-
-        {/* 카드 */}
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <div className="mb-3 text-xs font-semibold text-slate-500">
-            빠른 이동
-          </div>
-
-          <ul className="space-y-3">
-            <li>
-              <Link
-                to="/test"
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-4 ring-1 ring-slate-200 hover:bg-slate-100"
-              >
-                <span className="font-semibold text-slate-900">
-                  서버 연결 테스트
-                </span>
-                <span className="text-slate-400">→</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link
-                to="/camera"
-                className="flex items-center justify-between rounded-2xl bg-slate-900 px-4 py-4 text-white hover:bg-slate-800"
-              >
-                <span className="font-semibold">카메라</span>
-                <span className="text-white/70">→</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link
-                to="/callLobby"
-                className="flex items-center justify-between rounded-2xl bg-slate-900 px-4 py-4 text-white hover:bg-slate-800"
-              >
-                <span className="font-semibold">실시간 영상 통화</span>
-                <span className="text-white/70">→</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link
-                to="/translationLogPanel"
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-4 ring-1 ring-slate-200 hover:bg-slate-100"
-              >
-                <span className="font-semibold text-slate-900">
-                  번역 로그 (개발참고)
-                </span>
-                <span className="text-slate-400">→</span>
-              </Link>
-            </li>
-          </ul>
-          <ul>
-          <li>
-              <Link
-                to="/board"
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-4 ring-1 ring-slate-200 hover:bg-slate-100"
-              >
-                <span className="font-semibold text-slate-900">
-                  테스트
-                </span>
-                <span className="text-slate-400">→</span>
-              </Link>
-            </li>
-          </ul>
-          <ul>
-           <li>
-              <Link
-                to="/Login"
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-4 ring-1 ring-slate-200 hover:bg-slate-100"
-              >
-                <span className="font-semibold text-slate-900">
-                  로그인
-                </span>
-                <span className="text-slate-400">→</span>
-              </Link>
-            </li>
-          </ul>
-
-          <div className="mt-4 text-xs text-slate-500">
-            * 나중에 로그인/설정 같은 메뉴도 여기 추가하면 됨
+    <div className="min-h-[calc(100-5rem)] bg-slate-50 flex">
+      {/* 메인 콘텐츠 영역 */}
+      <main className="flex-1 p-8 flex flex-col gap-8">
+        {/* 화면 전환 영역 (Large Area) */}
+        <div className="flex-1 glass rounded-[3rem] flex items-center justify-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 group-hover:opacity-100 transition-opacity"></div>
+          <div className="text-center z-10">
+            <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-200 animate-pulse">
+              <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight mb-2">화면 전환</h2>
+            <p className="text-slate-500 font-bold">실시간 수어 번역 및 영상 통화 시스템</p>
           </div>
         </div>
 
-        {/* 하단 작은 안내 */}
-        <div className="mt-6 text-xs text-slate-400">
-          SLT 프로젝트 · React + Tailwind
+        {/* 하단 언어 버튼 */}
+        <div className="flex justify-center gap-6">
+          {languages.map((lang) => (
+            <button
+              key={lang.code}
+              className="px-12 py-5 glass rounded-3xl text-xl font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:-translate-y-1 transition-all shadow-lg active:scale-95"
+            >
+              {lang.name}
+            </button>
+          ))}
         </div>
-      </div>
+      </main>
+
+      {/* 우측 사이드바 */}
+      <HomeSidebar />
     </div>
   );
 }

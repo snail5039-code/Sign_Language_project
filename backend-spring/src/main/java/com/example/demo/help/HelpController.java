@@ -60,7 +60,7 @@ public class HelpController {
 
         // 2) 안전 필터(최소)
         String low = msgRaw.toLowerCase();
-        if (containsAny(low, "자살", "죽고", "죽을", "목숨", "끝내고")) {
+        if (containsAny(low, "자살", "죽고", "죽을", "목숨", "끝내고", "마포대교")) {
             return mk(
                     "cards",
                     "지금은 네 안전이 제일 중요해. 혼자 버티지 말고 주변 도움을 꼭 받아.",

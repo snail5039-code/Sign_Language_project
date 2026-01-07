@@ -1,83 +1,116 @@
 import React, { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
+import { useModal } from "../../context/ModalContext";
 
-export default function BoardWrite({ boardId, onSuccess }) {
+export default function BoardWrite() {
+  const [searchParams] = useSearchParams();
+  const boardId = Number(searchParams.get("boardId")) || 2;
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = async () => {
+  const nav = useNavigate();
+  const { showModal } = useModal();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const t = title.trim();
     const c = content.trim();
 
-    // 공백 검증
-    if (!t) return setErrorMsg("제목을 입력.");
-    if (!c) return setErrorMsg("내용을 입력.");
-    if (t.length < 2) return setErrorMsg("제목은 2글자 이상!");
-    if (c.length < 5) return setErrorMsg("내용은 5글자 이상!");
+    if (!t || !c) {
+      showModal({ title: "입력 오류", message: "제목과 내용을 모두 입력해주세요.", type: "warning" });
+      return;
+    }
 
     try {
       setLoading(true);
-      setErrorMsg("");
-
-      // axios.post -> api.post (토큰 자동 첨부)
       await api.post("/boards", {
-        boardId: Number(boardId),
+        boardId,
         title: t,
         content: c,
       });
 
-      setTitle("");
-      setContent("");
-      onSuccess?.();
+      showModal({
+        title: "등록 완료",
+        message: "게시글이 성공적으로 등록되었습니다.",
+        type: "success",
+        onClose: () => nav("/board")
+      });
     } catch (e) {
-      console.log("✅ status:", e.response?.status);
-      console.log("✅ data:", e.response?.data);
-      console.log("✅ payload:", { boardId, title: t, content: c });
-      console.log("✅ full error:", e);
-
-      if (e?.response?.status === 401) {
-        setErrorMsg("로그인이 필요합니다.");
-      } else if (e?.response?.status === 403) {
-        setErrorMsg("권한이 없습니다(ROLE 확인).");
-      } else {
-        setErrorMsg(e?.response?.data?.message || "글 등록 실패");
-      }
+      console.error(e);
+      showModal({
+        title: "등록 실패",
+        message: e?.response?.data?.message || "글 등록 중 오류가 발생했습니다.",
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="border rounded-2xl p-5 mt-6 bg-white">
-      <input
-        className="w-full border p-3 mb-3 rounded-xl"
-        placeholder="제목"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        disabled={loading}
-      />
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <button
+          onClick={() => nav(-1)}
+          className="mb-8 flex items-center gap-2 text-slate-400 font-black hover:text-indigo-600 transition-colors group"
+        >
+          <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          뒤로 가기
+        </button>
 
-      <textarea
-        className="w-full border p-3 mb-3 rounded-xl min-h-[120px]"
-        placeholder="내용"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        disabled={loading}
-      />
+        <div className="glass rounded-[3rem] p-12 border-slate-100 shadow-2xl animate-fade-in">
+          <div className="mb-10">
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">새 게시글 작성</h1>
+            <p className="text-slate-400 mt-2 font-bold">당신의 생각을 공유해보세요.</p>
+          </div>
 
-      {errorMsg && (
-        <div className="mb-3 text-sm text-red-600">{errorMsg}</div>
-      )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">제목</label>
+              <input
+                className="w-full px-6 py-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder-slate-300 font-bold"
+                placeholder="제목을 입력하세요"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={loading}
+              />
+            </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded-xl disabled:opacity-60"
-      >
-        {loading ? "등록 중..." : "글 등록"}
-      </button>
+            <div>
+              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">내용</label>
+              <textarea
+                className="w-full px-6 py-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder-slate-300 font-bold min-h-[400px] resize-none"
+                placeholder="내용을 입력하세요"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => nav(-1)}
+                className="flex-1 py-5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all active:scale-95"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-[2] py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 active:scale-95"
+              >
+                {loading ? "등록 중..." : "게시글 등록하기"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

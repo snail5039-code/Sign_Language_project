@@ -1,151 +1,100 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { api } from "../../api/client";
+import { useModal } from "../../context/ModalContext";
 
 export default function FindLoginPw() {
     const navigate = useNavigate();
+    const { showModal } = useModal();
     const [loginId, setLoginId] = useState('');
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleFindLoginPw = async () => {
-        if (!loginId.trim()) {
-            alert('아이디를 입력해주세요.');
-            return;
-        }
-        if (!email.trim()) {
-            alert('이메일을 입력해주세요.');
-            return;
-        }
+        if (!loginId.trim()) return showModal({ title: "입력 오류", message: "아이디를 입력해주세요.", type: "warning" });
+        if (!email.trim()) return showModal({ title: "입력 오류", message: "이메일을 입력해주세요.", type: "warning" });
 
         setLoading(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/members/findLoginPw', {
-                loginId,
-                email
+            const response = await api.post('/members/findLoginPw', { loginId, email });
+            const { message } = response.data;
+            showModal({
+                title: "비밀번호 찾기 성공",
+                message: message,
+                type: "success",
+                onClose: () => navigate('/login')
             });
-            const { message, tempPw } = response.data;
-            alert(`${message}`);
-            navigate('/login');
         } catch (error) {
             console.error(error);
-            const errMsg = error.response?.data?.message || '비밀번호 찾기 실패';
-            alert(errMsg);
+            showModal({
+                title: "찾기 실패",
+                message: error.response?.data?.message || '비밀번호 찾기 중 오류가 발생했습니다.',
+                type: "error"
+            });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="page" style={{ padding: '40px 0', minHeight: '80vh' }}>
-            <div className="container" style={{ maxWidth: '720px', margin: '0 auto' }}>
-                <div className="auth-wrap">
-                    <div className="card auth-card" style={{
-                        padding: '26px',
-                        backgroundColor: '#fff',
-                        borderRadius: '16px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                    }}>
-                        <h1 className="auth-title" style={{
-                            margin: 0,
-                            fontSize: '32px',
-                            fontWeight: 900,
-                            textAlign: 'center'
-                        }}>비밀번호 찾기</h1>
-                        <p className="auth-sub" style={{
-                            margin: '10px 0 0',
-                            color: '#64748b',
-                            fontWeight: 700,
-                            textAlign: 'center'
-                        }}>임시 비밀번호를 발급받을 계정 정보를 입력해 주세요.</p>
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center py-20 px-6">
+            <div className="w-full max-w-xl bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 animate-scale-in">
+                <div className="text-center mb-12">
+                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-100 -rotate-3">
+                        <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">비밀번호 찾기</h1>
+                    <p className="text-slate-400 mt-3 font-bold">임시 비밀번호를 발급받을 계정 정보를 입력해 주세요</p>
+                </div>
 
-                        <div className="auth-form" style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <label htmlFor="loginId" style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>아이디</label>
-                                <input
-                                    id="loginId"
-                                    type="text"
-                                    placeholder="아이디를 입력하세요"
-                                    value={loginId}
-                                    onChange={(e) => setLoginId(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e2e8f0'
-                                    }}
-                                />
-                            </div>
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-black text-slate-700 mb-2 ml-1">아이디</label>
+                        <input
+                            type="text"
+                            placeholder="아이디를 입력하세요"
+                            value={loginId}
+                            onChange={(e) => setLoginId(e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
+                        />
+                    </div>
 
-                            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <label htmlFor="email" style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>이메일</label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    placeholder="example@email.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e2e8f0'
-                                    }}
-                                />
-                            </div>
+                    <div>
+                        <label className="block text-sm font-black text-slate-700 mb-2 ml-1">이메일</label>
+                        <input
+                            type="email"
+                            placeholder="example@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
+                        />
+                    </div>
 
-                            <div className="auth-actions" style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                <button
-                                    className="btn btn-primary"
-                                    type="button"
-                                    onClick={handleFindLoginPw}
-                                    disabled={loading}
-                                    style={{
-                                        padding: '10px 20px',
-                                        backgroundColor: '#4f46e5',
-                                        color: '#fff',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {loading ? '처리 중...' : '비밀번호 찾기'}
-                                </button>
-                                <button
-                                    className="btn"
-                                    type="button"
-                                    onClick={() => navigate(-1)}
-                                    style={{
-                                        padding: '10px 20px',
-                                        backgroundColor: '#f1f5f9',
-                                        color: '#0f172a',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    뒤로가기
-                                </button>
-                            </div>
+                    <div className="pt-6 flex flex-col gap-4">
+                        <button
+                            onClick={handleFindLoginPw}
+                            disabled={loading}
+                            className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 active:scale-95"
+                        >
+                            {loading ? "처리 중..." : "비밀번호 찾기"}
+                        </button>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="w-full py-5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all active:scale-95"
+                        >
+                            뒤로 가기
+                        </button>
+                    </div>
 
-                            <div className="auth-links" style={{
-                                marginTop: '14px',
-                                display: 'flex',
-                                gap: '14px',
-                                justifyContent: 'center',
-                                color: '#64748b',
-                                fontWeight: 700
-                            }}>
-                                <Link to="/findLoginId" style={{ textDecoration: 'none', color: 'inherit' }}>아이디 찾기</Link>
-                                <span style={{ opacity: '.35' }}>|</span>
-                                <Link to="/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
-                            </div>
-                        </div>
+                    <div className="text-center pt-4 flex items-center justify-center gap-6 text-sm font-bold text-slate-400">
+                        <Link to="/findLoginId" className="hover:text-indigo-600 transition-colors">아이디 찾기</Link>
+                        <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                        <Link to="/login" className="hover:text-indigo-600 transition-colors">로그인</Link>
                     </div>
                 </div>
             </div>
         </div>
     );
-};
+}

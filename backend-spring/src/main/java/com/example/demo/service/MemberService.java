@@ -8,11 +8,13 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.dao.MemberDao;
 import com.example.demo.dao.ArticleDao;
 import com.example.demo.dao.CommentDao;
 import com.example.demo.dao.ReactionDao;
+import com.example.demo.dao.EmailVerificationDao;
 import com.example.demo.dto.Country;
 import com.example.demo.dto.Member;
 import com.example.demo.dto.MyPageData;
@@ -27,20 +29,31 @@ public class MemberService {
     private final ArticleDao articleDao;
     private final CommentDao commentDao;
     private final ReactionDao reactionDao;
+    private final EmailVerificationDao emailVerificationDao;
 
-    @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
+    @Value("${spring.mail.username}")
     private String mailFrom;
 
     public MemberService(MemberDao memberDao,
             org.springframework.mail.javamail.JavaMailSender mailSender,
             ArticleDao articleDao,
             CommentDao commentDao,
-            ReactionDao reactionDao) {
+            ReactionDao reactionDao,
+            EmailVerificationDao emailVerificationDao) {
         this.memberDao = memberDao;
         this.mailSender = mailSender;
         this.articleDao = articleDao;
         this.commentDao = commentDao;
         this.reactionDao = reactionDao;
+        this.emailVerificationDao = emailVerificationDao;
+    }
+
+    public boolean isNicknameTaken(String nickname) {
+        return memberDao.existsByNickname(nickname);
+    }
+
+    public boolean isLoginIdTaken(String loginId) {
+        return memberDao.existsByLoginId(loginId);
     }
 
     public MyPageData getMyPageData(int memberId) {
@@ -63,6 +76,37 @@ public class MemberService {
         data.setMyComments(commentDao.selectByMemberId(memberId));
         data.setLikedArticles(articleDao.selectLikedByMemberId(memberId));
 
+        // 닉네임 변경 가능 여부
+        java.time.LocalDateTime last = null;
+        if (member.getNicknameUpdatedAt() != null) {
+            try {
+                last = java.time.LocalDateTime.parse(member.getNicknameUpdatedAt(),
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            } catch (Exception e) {
+                try {
+                    last = java.time.LocalDateTime.parse(member.getNicknameUpdatedAt());
+                } catch (Exception e2) {
+                }
+            }
+        }
+        java.time.LocalDateTime next = (last != null) ? last.plusDays(30) : null;
+        boolean nicknameChangeAllowed = (next == null) || !next.isAfter(java.time.LocalDateTime.now());
+
+        String nextNicknameChangeDate = (next != null)
+                ? next.format(java.time.format.DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH시 mm분"))
+                : "";
+
+        long nicknameDaysLeft = 0;
+        if (next != null && next.isAfter(java.time.LocalDateTime.now())) {
+            nicknameDaysLeft = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDateTime.now(), next);
+            if (nicknameDaysLeft < 0)
+                nicknameDaysLeft = 0;
+        }
+
+        data.setNicknameChangeAllowed(nicknameChangeAllowed);
+        data.setNextNicknameChangeDate(nextNicknameChangeDate);
+        data.setNicknameDaysLeft(nicknameDaysLeft);
+
         return data;
     }
 
@@ -82,7 +126,14 @@ public class MemberService {
         if (this.memberDao.findByLoginId(member.getLoginId()) != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 아이디");
 
+        // 이메일 인증 여부 확인
+        if (!emailVerificationDao.isEmailVerified(member.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이메일 인증이 필요합니다.");
+        }
+
         this.memberDao.join(member);
+        // 가입 완료 후 인증 정보 삭제 (선택 사항)
+        emailVerificationDao.deleteByEmail(member.getEmail());
     }
 
     // 로그인
@@ -130,6 +181,7 @@ public class MemberService {
         nm.setLoginId(provider + "_" + providerKey);
         nm.setLoginPw("SOCIAL_LOGIN"); // 더미 비밀번호
         nm.setCountryId(1);
+        nm.setNickname(safeName); // Default nickname for social login
 
         this.memberDao.insertSocial(nm);
 
@@ -232,16 +284,85 @@ public class MemberService {
         }
     }
 
-	public void memberModify(Member member, int id) {
-		this.memberDao.memberModify(member, id);
-		
-	}
+    public void memberModify(Member member, int id) {
+        System.out.println("[MemberService] memberModify id=" + id + ", member=" + member);
+        Member oldMember = memberDao.findById(id);
+        if (oldMember == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다.");
+        }
 
-	public void memberDelete(int id) {
-		this.memberDao.memberDelete(id);
-		
-	}
+        // 비밀번호가 없으면 기존 비밀번호 유지
+        if (member.getLoginPw() == null || member.getLoginPw().isBlank()) {
+            member.setLoginPw(oldMember.getLoginPw());
+        }
 
+        // 닉네임 변경 시 30일 제한 체크
+        if (member.getNickname() != null && !member.getNickname().equals(oldMember.getNickname())) {
+            java.time.LocalDateTime last = null;
+            if (oldMember.getNicknameUpdatedAt() != null) {
+                try {
+                    last = java.time.LocalDateTime.parse(oldMember.getNicknameUpdatedAt(),
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                } catch (Exception e) {
+                    try {
+                        last = java.time.LocalDateTime.parse(oldMember.getNicknameUpdatedAt());
+                    } catch (Exception e2) {
+                    }
+                }
+            }
+            if (last != null && last.plusDays(30).isAfter(java.time.LocalDateTime.now())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임은 30일에 한 번만 변경 가능합니다.");
+            }
+            member.setNicknameUpdatedAt(java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        } else {
+            member.setNicknameUpdatedAt(oldMember.getNicknameUpdatedAt());
+        }
 
+        try {
+            this.memberDao.memberModify(member, id);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "회원 정보 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    public void memberDelete(int id) {
+        this.memberDao.memberDelete(id);
+    }
+
+    // --- 이메일 인증 관련 ---
+
+    public void sendVerificationCode(String email) {
+        // 6자리 랜덤 코드 생성
+        String code = String.valueOf((int) (Math.random() * 899999) + 100000);
+        java.time.LocalDateTime expiredAt = java.time.LocalDateTime.now().plusMinutes(5); // 5분 유효
+
+        // 기존 인증 정보 삭제 후 새로 삽입
+        emailVerificationDao.deleteByEmail(email);
+        emailVerificationDao.insertVerification(email, code, expiredAt);
+
+        String subject = "[SLT Project] 이메일 인증 코드 안내";
+        String body = """
+                    <html>
+                      <body>
+                        <h3>이메일 인증 코드</h3>
+                        <p>인증 코드는 <b>%s</b> 입니다.</p>
+                        <p>5분 이내에 입력해주세요.</p>
+                      </body>
+                    </html>
+                """.formatted(code);
+
+        sendEmail(email, subject, body);
+    }
+
+    public void verifyCode(String email, String code) {
+        if (emailVerificationDao.isValidCode(email, code)) {
+            emailVerificationDao.markAsVerified(email, code);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다.");
+        }
+    }
 
 }

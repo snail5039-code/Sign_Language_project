@@ -28,10 +28,12 @@ public class Member {
 	private String email;
 
 	@NotNull(message = "국적 선택 필수")
-	  private Integer countryId;
+	private Integer countryId;
 	private String provider;
 	private String providerKey;
-	
+
 	private String role;
-	
+
+	private String nickname;
+	private String nicknameUpdatedAt;
 }

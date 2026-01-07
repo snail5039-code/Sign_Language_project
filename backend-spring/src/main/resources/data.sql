@@ -13,15 +13,19 @@ INSERT INTO country (id, countryName) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO member (
-    loginId, loginPw, name, email, countryId, role
+    loginId, loginPw, name, email, countryId, role, nickname, nicknameUpdatedAt
 ) VALUES (
     'admin',
     'admin',
     '관리자',
     'admin@test.com',
     1,
-    'ADMIN'
+    'ADMIN',
+    '관리자',
+    NOW()
 ) ON CONFLICT (loginId) DO UPDATE SET 
     loginPw = EXCLUDED.loginPw,
     role = EXCLUDED.role,
-    name = EXCLUDED.name;
+    name = EXCLUDED.name,
+    nickname = EXCLUDED.nickname,
+    nicknameUpdatedAt = EXCLUDED.nicknameUpdatedAt;

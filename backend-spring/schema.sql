@@ -26,8 +26,11 @@ create table if not exists article (
     regDate timestamp not null default now(),
     updateDate timestamp not null default now(),
     boardId bigint not null,
-    memberId bigint not null
+    memberId bigint not null,
+    hit integer not null default 0
 );
+
+ALTER TABLE article ADD COLUMN IF NOT EXISTS hit integer NOT NULL DEFAULT 0;
 
 ALTER TABLE member ADD COLUMN IF NOT EXISTS provider varchar(20);
 ALTER TABLE member ADD COLUMN IF NOT EXISTS provider_key varchar(100);
