@@ -6,6 +6,7 @@ import "./index.css";
 import "./styles/GlobalStyles.css";
 import AuthProvider from "./auth/AuthProvider.jsx";
 import { ModalProvider } from "./context/ModalContext.jsx";
+import "./i18n";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

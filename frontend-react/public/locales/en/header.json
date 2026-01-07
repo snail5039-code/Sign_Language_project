@@ -1,0 +1,14 @@
+{
+  "brand": "My Service",
+  "nav": {
+    "encyclopedia": "Encyclopedia",
+    "translate": "Translate",
+    "call": "Call",
+    "board": "Board"
+  },
+  "auth": {
+    "login": "Login",
+    "join": "Sign up",
+    "logout": "Logout"
+  }
+}
