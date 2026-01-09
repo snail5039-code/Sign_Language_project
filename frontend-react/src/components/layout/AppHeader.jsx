@@ -1,14 +1,15 @@
 ﻿import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/AuthProvider";
 import useLangMenu from "../../shared/useLangMenu";
 
-const BOARD_MENU = [
-  { key: "notice" },
-  { key: "free" },
-  { key: "qna" },
-  { key: "error" },
+const NAV_ITEMS = [
+  { to: "/", label: "Home" },
+  { to: "/about", label: "About" },
+  { to: "/board", label: "Board" },
+  { to: "/motionGuide", label: "Motion Guide" },
+  { to: "/download", label: "Download" },
 ];
 
 export default function AppHeader() {
@@ -25,71 +26,32 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 bg-white/90 backdrop-blur-xl border-b border-slate-200/50 z-50 shadow-sm">
-      <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-12">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface-soft)]/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-6 lg:px-10">
+        <div className="flex items-center gap-6">
           <Link
             to="/"
-            className="text-2xl font-black text-indigo-600 tracking-tighter hover:opacity-80 transition-opacity"
+            className="text-lg tracking-tight text-white hover:text-[var(--accent)] transition-colors"
           >
             {t("header:brand")}
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
-            <Link
-              to="/encyclopedia"
-              className="px-5 py-2 text-sm font-black text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
-            >
-              {t("header:nav.encyclopedia")}
-            </Link>
-
-            <Link
-              to="/camera"
-              className="px-5 py-2 text-sm font-black text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
-            >
-              {t("header:nav.translate")}
-            </Link>
-
-            <Link
-              to="/call"
-              className="px-5 py-2 text-sm font-black text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
-            >
-              {t("header:nav.call")}
-            </Link>
-
-            <div className="relative group">
-              <Link
-                to="/board"
-                className="px-5 py-2 text-sm font-black text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all flex items-center gap-1"
+          <nav className="flex items-center gap-2 lg:hidden">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `rounded-xl px-3 py-1.5 text-xs transition-all ${
+                    isActive
+                      ? "bg-[var(--accent)]/20 text-white"
+                      : "text-[var(--muted)] hover:text-white"
+                  }`
+                }
               >
-                {t("header:nav.board")}
-                <svg
-                  className="w-4 h-4 transition-transform group-hover:rotate-180"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </Link>
-
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-3xl shadow-2xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top scale-95 group-hover:scale-100 p-2 z-50">
-                {BOARD_MENU.map((item) => (
-                  <Link
-                    key={item.key}
-                    to={`/board?type=${item.key}`}
-                    className="block px-4 py-3 text-sm font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-2xl transition-all"
-                  >
-                    {t(`board:menu.${item.key}`)}
-                  </Link>
-                ))}
-              </div>
-            </div>
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
 
@@ -102,10 +64,10 @@ export default function AppHeader() {
                 console.log("[LangMenu] toggle click", { isLangOpen });
                 setIsLangOpen((v) => !v);
               }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-100 rounded-2xl transition-all"
+              className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 px-4 py-2 text-xs text-[var(--muted)] hover:text-white transition-all"
             >
               <svg
-                className="w-4 h-4 text-indigo-500"
+                className="w-4 h-4 text-[var(--accent)]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -121,9 +83,7 @@ export default function AppHeader() {
               {currentLang}
 
               <svg
-                className={`w-4 h-4 transition-transform ${
-                  isLangOpen ? "rotate-180" : ""
-                }`}
+                className={`w-4 h-4 transition-transform ${isLangOpen ? "rotate-180" : ""}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -138,7 +98,7 @@ export default function AppHeader() {
             </button>
 
             {isLangOpen && (
-              <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50">
+              <div className="absolute top-full right-0 mt-2 w-40 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[0_18px_40px_rgba(6,12,26,0.55)] z-50">
                 {LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
@@ -147,7 +107,7 @@ export default function AppHeader() {
                       console.log("[LangMenu] select click", lang.code);
                       selectLang(lang.code);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-2xl transition-all"
+                    className="w-full rounded-xl px-3 py-2 text-left text-xs text-[var(--muted)] hover:text-white hover:bg-[rgba(59,130,246,0.15)] transition-all"
                   >
                     {lang.name}
                   </button>
@@ -156,19 +116,19 @@ export default function AppHeader() {
             )}
           </div>
 
-          <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
+          <div className="h-6 w-[1px] bg-[var(--border)] mx-2"></div>
 
           {!isAuthed ? (
             <div className="flex items-center gap-2">
               <Link
                 to="/login"
-                className="px-5 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-100 rounded-2xl transition-all"
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs text-[var(--muted)] hover:text-white transition-all"
               >
                 {t("header:auth.login")}
               </Link>
               <Link
                 to="/join"
-                className="px-6 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all"
+                className="rounded-xl bg-[var(--accent)] px-4 py-2 text-xs text-white shadow-[0_10px_30px_rgba(59,130,246,0.35)] hover:bg-[var(--accent-strong)] transition-all"
               >
                 {t("header:auth.join")}
               </Link>
@@ -177,14 +137,10 @@ export default function AppHeader() {
             <div className="flex items-center gap-3">
               <Link
                 to="/mypage"
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-all"
+                className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3 py-1.5 text-xs text-[var(--muted)] hover:text-white transition-all"
               >
-                <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-4 h-4 text-indigo-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
+                <div className="h-7 w-7 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center">
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
                       d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
@@ -192,15 +148,13 @@ export default function AppHeader() {
                     />
                   </svg>
                 </div>
-                <span className="text-xs font-black text-slate-700">
-                  {user?.nickname || user?.name}
-                </span>
+                <span>{user?.nickname || user?.name}</span>
               </Link>
 
               <button
                 type="button"
                 onClick={onLogout}
-                className="px-5 py-2.5 rounded-2xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800 transition-all shadow-md"
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs text-[var(--muted)] hover:text-white transition-all"
               >
                 {t("header:auth.logout")}
               </button>

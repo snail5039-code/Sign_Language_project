@@ -1,19 +1,41 @@
 @reference "tailwindcss";
 
 :root {
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --secondary: #0f172a;
-    --accent: #10b981;
+    --bg: #0b1324;
+    --bg-deep: #0a1020;
+    --surface: #121b2f;
+    --surface-soft: #0f182b;
+    --border: rgba(71, 92, 122, 0.35);
+    --text: #e6ecf5;
+    --muted: #9fb0c9;
+    --accent: #3b82f6;
+    --accent-strong: #2563eb;
+    --success: #22c55e;
     --danger: #ef4444;
-    --warning: #f59e0b;
-    --background: #f8fafc;
-    --surface: rgba(255, 255, 255, 0.8);
-    --border: rgba(226, 232, 240, 0.8);
 
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --glass-bg: rgba(16, 24, 42, 0.7);
+    --glass-border: rgba(71, 92, 122, 0.25);
+    --glass-shadow: 0 20px 45px rgba(4, 10, 22, 0.55);
+}
+
+@font-face {
+    font-family: "SUIT";
+    src: url("/fonts/SUIT-Medium.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "SUIT", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-weight: 500;
+}
+
+#root {
+    min-height: 100%;
 }
 
 @keyframes fadeIn {
@@ -57,7 +79,7 @@
 }
 
 .premium-shadow {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 18px 40px rgba(6, 12, 26, 0.45);
 }
 
 .premium-button {
@@ -65,5 +87,5 @@
 }
 
 .premium-input {
-    @apply w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
+    @apply w-full px-4 py-3 rounded-2xl outline-none transition-all;
 }

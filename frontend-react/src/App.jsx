@@ -1,8 +1,10 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Test from "./pages/Test.jsx";
-import Camera from "./pages/Camera.jsx";
 import TranslationLogPanel from "./components/TranslationLogPanel.jsx";
+import MotionGuide from "./pages/MotionGuide.jsx";
+import About from "./pages/About.jsx";
+import Download from "./pages/Download.jsx";
 
 import Board from "./pages/board/Board.jsx";
 import BoardDetail from "./pages/board/BoardDetail.jsx";
@@ -19,7 +21,6 @@ import MyPage from "./pages/member/MyPage.jsx";
 import { useAuth } from "./auth/AuthProvider";
 import Layout from "./components/layout/Layout.jsx";
 import OAuth2Redirect from "./pages/OAuth2Redirect.jsx";
-import CallRoom from "./pages/CallRoom.jsx";
 
 export default function App() {
   const { loading } = useAuth();
@@ -32,7 +33,9 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/test" element={<Test />} />
-        <Route path="/camera" element={<Camera />} />
+        <Route path="/motionGuide" element={<MotionGuide />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/download" element={<Download />} />
         <Route path="/translationLogPanel" element={<TranslationLogPanel />} />
 
         {/* 게시판 */}
@@ -45,7 +48,6 @@ export default function App() {
         <Route path="/mypage" element={<MyPage />} />
 
         {/* 화상통화 */}
-        <Route path="/call/:roomId" element={<CallRoom />} />
       </Route>
 
       {/* 헤더 빼고 싶은 페이지는 Layout 밖으로 */}

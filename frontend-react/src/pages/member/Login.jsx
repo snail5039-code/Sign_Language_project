@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
 import { useModal } from "../../context/ModalContext";
-import SocialLoginModal from "../../components/member/SocialLoginModal";
+import SocialLoginButtons from "./SocialLoginButtons";
 
 export default function Login() {
   const [loginId, setLoginId] = useState("");
@@ -23,7 +23,7 @@ export default function Login() {
     if (!i || !p) {
       showModal({
         title: "입력 오류",
-        message: "아이디와 비밀번호를 모두 입력해주세요.",
+        message: "아이디와 비밀번호를 모두 입력해 주세요.",
         type: "warning"
       });
       return;
@@ -39,7 +39,7 @@ export default function Login() {
       await loginWithToken(token);
       showModal({
         title: "로그인 성공",
-        message: `${res.data.name || i}님, 환영합니다!`,
+        message: `${res.data.name || i}님 환영합니다.`,
         type: "success",
         onClose: () => nav("/home", { replace: true })
       });
@@ -59,87 +59,75 @@ export default function Login() {
     }
   };
 
-  const openSocialModal = () => {
-    showModal({
-      title: "소셜 로그인",
-      children: <SocialLoginModal />
-    });
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-md bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 animate-scale-in">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-100 rotate-3">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(30,58,138,0.35),_transparent_50%),linear-gradient(180deg,_var(--bg)_0%,_var(--bg-deep)_100%)] p-6">
+      <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center">
+        <div className="grid w-full gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] p-10 shadow-[0_20px_45px_rgba(6,12,26,0.55)]">
+            <div className="mb-8">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
+                Secure Access
+              </div>
+              <h1 className="text-3xl tracking-tight text-white">로그인</h1>
+              <p className="mt-2 text-sm text-[var(--muted)]">대시보드와 모션 가이드로 이동합니다.</p>
+            </div>
+
+            <form className="space-y-6" onSubmit={onSubmit}>
+              <div>
+                <label className="block text-xs text-[var(--muted)]">아이디</label>
+                <input
+                  className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-white outline-none focus:border-[var(--accent)]"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  placeholder="아이디를 입력하세요"
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[var(--muted)]">비밀번호</label>
+                <input
+                  className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-white outline-none focus:border-[var(--accent)]"
+                  value={loginPw}
+                  onChange={(e) => setLoginPw(e.target.value)}
+                  placeholder="비밀번호를 입력하세요"
+                  type="password"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+                <div className="flex gap-3">
+                  <Link to="/findLoginId" className="hover:text-white transition-colors">아이디 찾기</Link>
+                  <Link to="/findLoginPw" className="hover:text-white transition-colors">비밀번호 찾기</Link>
+                </div>
+                <Link to="/join" className="text-[var(--accent)] hover:text-white transition-colors">
+                  회원가입
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-2xl bg-[var(--accent)] py-3 text-sm text-white shadow-[0_16px_30px_rgba(59,130,246,0.35)] hover:bg-[var(--accent-strong)] transition-all disabled:opacity-60"
+              >
+                {loading ? "로그인 중..." : "로그인"}
+              </button>
+            </form>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">로그인</h1>
-          <p className="text-slate-400 mt-3 font-bold">효자손 프로젝트에 다시 오신 것을 환영합니다</p>
+
+          <div className="rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] p-10 shadow-[0_20px_45px_rgba(6,12,26,0.55)]">
+            <div className="mb-6">
+              <h2 className="text-lg text-white">소셜 로그인</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">Google, Kakao, Naver로 바로 시작하세요.</p>
+            </div>
+            <SocialLoginButtons />
+            <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-4 text-xs text-[var(--muted)]">
+              계정 연동 후에는 자동으로 대시보드로 이동합니다.
+            </div>
+          </div>
         </div>
-
-        <form className="space-y-6" onSubmit={onSubmit}>
-          <div>
-            <label className="block text-sm font-black text-slate-700 mb-2 ml-1">아이디</label>
-            <input
-              className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-              placeholder="아이디를 입력하세요"
-              disabled={loading}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-black text-slate-700 mb-2 ml-1">비밀번호</label>
-            <input
-              className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-              value={loginPw}
-              onChange={(e) => setLoginPw(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
-              type="password"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-xs pt-2 px-1">
-            <div className="flex space-x-4 text-slate-400 font-black">
-              <Link to="/findLoginId" className="hover:text-indigo-600 transition-colors">아이디 찾기</Link>
-              <Link to="/findLoginPw" className="hover:text-indigo-600 transition-colors">비밀번호 찾기</Link>
-            </div>
-            <Link to="/join" className="text-indigo-600 hover:text-indigo-500 font-black">회원가입</Link>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 active:scale-95"
-          >
-            {loading ? "로그인 중..." : "로그인"}
-          </button>
-
-          <div className="relative my-10">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100"></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-white px-4 text-slate-300 font-black tracking-[0.2em]">Social Login</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={openSocialModal}
-            className="w-full py-5 border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center justify-center gap-3 active:scale-95"
-          >
-            <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            소셜로 로그인 하기
-          </button>
-        </form>
       </div>
     </div>
   );

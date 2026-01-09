@@ -51,14 +51,6 @@ export default function HomeSidebar() {
                 </button>
             </div>
 
-            {/* AI 자동응답 버튼 */}
-            <div className="px-6 mb-8">
-                <button className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-indigo-100 transition-all border border-indigo-100">
-                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></div>
-                    AI 자동응답
-                </button>
-            </div>
-
             {/* 사용자 정보 */}
             <div className="px-6 mb-8">
                 <div className="glass p-6 rounded-[2rem] border-slate-100 flex items-center gap-4">

@@ -5,29 +5,32 @@ export default function SocialLoginButtons() {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <button
-        type="button" // form submit 방지
+        type="button"
         onClick={() => goToLogin("google")}
-        className="w-full border rounded-xl py-3"
+        className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs text-white hover:border-[var(--accent)] transition-all"
       >
-        Google로 계속
+        <span>Google</span>
+        <span className="text-[10px] text-[var(--muted)]">Continue</span>
       </button>
 
       <button
         type="button"
         onClick={() => goToLogin("kakao")}
-        className="w-full border rounded-xl py-3"
+        className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs text-white hover:border-[var(--accent)] transition-all"
       >
-        Kakao로 계속
+        <span>Kakao</span>
+        <span className="text-[10px] text-[var(--muted)]">Continue</span>
       </button>
 
       <button
         type="button"
         onClick={() => goToLogin("naver")}
-        className="w-full border rounded-xl py-3"
+        className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs text-white hover:border-[var(--accent)] transition-all"
       >
-        Naver로 계속
+        <span>Naver</span>
+        <span className="text-[10px] text-[var(--muted)]">Continue</span>
       </button>
     </div>
   );

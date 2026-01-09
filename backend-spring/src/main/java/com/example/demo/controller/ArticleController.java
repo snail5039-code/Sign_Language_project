@@ -60,9 +60,7 @@ public class ArticleController {
 
         int itemsInAPage = Math.max(1, pageSize);
 
-        // 1. 디버깅 로그 (콘솔에서 articlesCnt가 9가 맞는지 꼭 확인하세요!)
         int articlesCnt = this.articleService.getArticlesCnt(boardId, searchType, searchKeyword.trim());
-        System.out.println("디버깅 - boardId: " + boardId + ", 검색된 게시글 수: " + articlesCnt);
 
         // 2. 전체 페이지 수 계산 (나누기 시 반드시 double 형변환 확인)
         int totalPagesCnt = (int) Math.ceil((double) articlesCnt / itemsInAPage);
@@ -91,10 +89,6 @@ public class ArticleController {
         // 5. 실제 리스트 가져오기
         List<Article> articles = this.articleService.showList(boardId, limitFrom, itemsInAPage, searchType,
                 searchKeyword.trim(), sortType);
-
-        // 최종 데이터 확인 로그
-        System.out.println(
-                "디버깅 - 결과: cPage=" + cPage + ", begin=" + begin + ", end=" + end + ", totalPages=" + totalPagesCnt);
 
         return Map.of(
                 "articles", articles,

@@ -1,12 +1,13 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useModal } from "../../context/ModalContext";
+import { useAuth } from "../../auth/AuthProvider";
 import { BOARD_TYPES } from "./BoardTypes";
 
 const SORT_OPTIONS = [
   { value: "latest", label: "최신순" },
-  { value: "views", label: "조회수" },
+  { value: "views", label: "조회순" },
   { value: "comments", label: "댓글순" }
 ];
 
@@ -25,18 +26,45 @@ const resolveBoardId = (typeParam) => {
 
 const resolveBoardKey = (id) => BOARD_TYPES.find((b) => b.id === id)?.key ?? String(id);
 
+const getStoredSortType = () => {
+  if (typeof window === "undefined") return "latest";
+  const stored = window.sessionStorage.getItem("boardSortType");
+  return stored || "latest";
+};
+
+const getStoredPageSize = () => {
+  if (typeof window === "undefined") return 10;
+  const stored = Number(window.sessionStorage.getItem("boardPageSize"));
+  return !Number.isNaN(stored) && stored > 0 ? stored : 10;
+};
+
+const getStoredSearchType = () => {
+  if (typeof window === "undefined") return "title";
+  const stored = window.sessionStorage.getItem("boardSearchType");
+  return stored || "title";
+};
+
+const getStoredPage = (id) => {
+  if (typeof window === "undefined") return 1;
+  const stored = Number(window.sessionStorage.getItem(`boardPage:${id}`));
+  return !Number.isNaN(stored) && stored > 0 ? stored : 1;
+};
+
 export default function Board() {
   const { showModal } = useModal();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const typeParam = searchParams.get("type");
+  const initialBoardId = resolveBoardId(typeParam);
 
-  const [cPage, setCPage] = useState(1);
-  const [boardId, setBoardId] = useState(() => resolveBoardId(searchParams.get("type")));
+  const [cPage, setCPage] = useState(() => getStoredPage(initialBoardId));
+  const [boardId, setBoardId] = useState(() => initialBoardId);
   const [boards, setBoards] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchType, setSearchType] = useState("title");
-  const [pageSize, setPageSize] = useState(10);
-  const [sortType, setSortType] = useState("latest");
+  const [searchType, setSearchType] = useState(() => getStoredSearchType());
+  const [pageSize, setPageSize] = useState(() => getStoredPageSize());
+  const [sortType, setSortType] = useState(() => getStoredSortType());
 
   const [pageInfo, setPageInfo] = useState({
     totalPagesCnt: 1,
@@ -48,18 +76,41 @@ export default function Board() {
   const nav = useNavigate();
 
   useEffect(() => {
-    const nextId = resolveBoardId(searchParams.get("type"));
+    const nextId = resolveBoardId(typeParam);
     if (nextId !== boardId) {
       setBoardId(nextId);
-      setCPage(1);
     }
-  }, [searchParams, boardId]);
+  }, [typeParam]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("boardId", String(boardId));
     }
   }, [boardId]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("boardSortType", sortType);
+    }
+  }, [sortType]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("boardPageSize", String(pageSize));
+    }
+  }, [pageSize]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("boardSearchType", searchType);
+    }
+  }, [searchType]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(`boardPage:${boardId}`, String(cPage));
+    }
+  }, [boardId, cPage]);
 
   useEffect(() => {
     setSearchInput(searchKeyword);
@@ -101,13 +152,17 @@ export default function Board() {
     fetchBoards();
   }, [boardId, cPage, pageSize, searchType, searchKeyword, sortType]);
 
+  const didInit = useRef(false);
+
   useEffect(() => {
+    if (!didInit.current) {
+      didInit.current = true;
+      return;
+    }
     setCPage(1);
   }, [boardId, pageSize, searchType, searchKeyword, sortType]);
 
   const handleBoardChange = (id) => {
-    setBoardId(id);
-    setCPage(1);
     const next = new URLSearchParams(searchParams);
     next.set("type", resolveBoardKey(id));
     setSearchParams(next, { replace: true });
@@ -132,24 +187,28 @@ export default function Board() {
     return date.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
+  const role = typeof user?.role === "string" ? user.role : "";
+  const isAdmin = role.toLowerCase().includes("admin") || role.includes("관리자");
+  const canWrite = boardId !== 1 || isAdmin;
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen text-[var(--text)]">
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative group">
-              <button className="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 flex items-center gap-3 shadow-sm hover:border-indigo-300 transition-all">
+              <button className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-3 text-sm text-white transition-all hover:border-[var(--accent)]">
                 {BOARD_TYPES.find((b) => b.id === boardId)?.name}
-                <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 text-[var(--muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-3xl shadow-2xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top scale-95 group-hover:scale-100 p-2 z-50">
+              <div className="absolute top-full left-0 mt-2 w-48 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top scale-95 group-hover:scale-100 z-50">
                 {BOARD_TYPES.map((type) => (
                   <button
                     key={type.id}
                     onClick={() => handleBoardChange(type.id)}
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-2xl transition-all"
+                    className="w-full rounded-lg px-4 py-2 text-left text-sm text-[var(--muted)] hover:bg-[rgba(59,130,246,0.15)] hover:text-white transition-all"
                   >
                     {type.name}
                   </button>
@@ -159,28 +218,28 @@ export default function Board() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-black text-slate-400">정렬</span>
+            <span className="text-xs text-[var(--muted)]">정렬</span>
             <select
               value={sortType}
               onChange={(e) => {
                 setSortType(e.target.value);
                 setCPage(1);
               }}
-              className="px-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs text-white outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
 
-            <span className="text-sm font-black text-slate-400">목록</span>
+            <span className="text-xs text-[var(--muted)]">목록</span>
             <select
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setCPage(1);
               }}
-              className="px-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs text-white outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
             >
               <option value={10}>10개씩 보기</option>
               <option value={20}>20개씩 보기</option>
@@ -189,43 +248,43 @@ export default function Board() {
           </div>
         </div>
 
-        <div className="glass rounded-[2.5rem] overflow-hidden border-slate-100 mb-8">
+        <div className="mb-8 overflow-hidden rounded-2xl border border-[var(--border)] bg-[rgba(18,27,47,0.92)] shadow-[0_18px_40px_rgba(6,12,26,0.45)]">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest w-20">번호</th>
-                <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">제목</th>
-                <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest w-32">작성자</th>
-                <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest w-32">날짜</th>
-                <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest w-24 text-center">조회수</th>
+              <tr className="border-b border-[var(--border)] bg-[rgba(9,14,26,0.8)]">
+                <th className="w-20 px-8 py-4 text-[10px] uppercase tracking-[0.3em] text-slate-200 whitespace-nowrap">번호</th>
+                <th className="px-8 py-4 text-[10px] uppercase tracking-[0.3em] text-slate-200">제목</th>
+                <th className="w-36 px-8 py-4 text-[10px] uppercase tracking-[0.3em] text-slate-200 whitespace-nowrap">작성자</th>
+                <th className="w-36 px-8 py-4 text-[10px] uppercase tracking-[0.3em] text-slate-200 whitespace-nowrap">작성일</th>
+                <th className="w-24 px-8 py-4 text-center text-[10px] uppercase tracking-[0.3em] text-slate-200 whitespace-nowrap">조회수</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[var(--border)]">
               {loading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center font-bold text-slate-400">불러오는 중...</td></tr>
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-sm text-slate-300">불러오는 중...</td></tr>
               ) : boards.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center font-bold text-slate-400">등록된 게시글이 없습니다.</td></tr>
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-sm text-slate-300">등록된 게시글이 없습니다.</td></tr>
               ) : (
                 boards.map((b) => (
                   <tr
                     key={b.id}
                     onClick={() => nav(`/board/${b.id}`)}
-                    className="group hover:bg-indigo-50/30 cursor-pointer transition-colors"
+                    className="group cursor-pointer transition-colors hover:bg-[rgba(59,130,246,0.12)]"
                   >
-                    <td className="px-8 py-6 text-sm font-bold text-slate-400">{b.id}</td>
+                    <td className="px-8 py-5 text-sm text-slate-300">{b.id}</td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
-                        <span className="text-base font-black text-slate-700 group-hover:text-indigo-600 transition-colors">{b.title}</span>
+                        <span className="text-sm text-slate-100 transition-colors group-hover:text-[var(--accent)]">{b.title}</span>
                         {b.commentCount > 0 && (
-                          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-black rounded-full">
+                          <span className="rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] text-[var(--accent)]">
                             {b.commentCount}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-sm font-bold text-slate-600">{b.writerName || "익명"}</td>
-                    <td className="px-8 py-6 text-sm font-bold text-slate-400">{formatDate(b.regDate)}</td>
-                    <td className="px-8 py-6 text-sm font-bold text-slate-400 text-center">{b.hit || 0}</td>
+                    <td className="px-8 py-5 text-sm text-slate-300 whitespace-nowrap">{b.writerName || "익명"}</td>
+                    <td className="px-8 py-5 text-sm text-slate-300 whitespace-nowrap">{formatDate(b.regDate)}</td>
+                    <td className="px-8 py-5 text-center text-sm text-slate-300 whitespace-nowrap">{b.hit || 0}</td>
                   </tr>
                 ))
               )}
@@ -234,11 +293,11 @@ export default function Board() {
         </div>
 
         <div className="flex flex-col gap-8">
-          <div className="flex justify-center items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <button
               onClick={() => setCPage(1)}
               disabled={cPage === 1}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-white disabled:opacity-30 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -247,7 +306,7 @@ export default function Board() {
             <button
               onClick={() => setCPage(Math.max(1, cPage - 1))}
               disabled={cPage === 1}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-white disabled:opacity-30 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -258,10 +317,11 @@ export default function Board() {
               <button
                 key={p}
                 onClick={() => setCPage(p)}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-sm transition-all ${cPage === p
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                    : "text-slate-400 hover:bg-white hover:text-indigo-600"
-                  }`}
+                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm transition-all ${
+                  cPage === p
+                    ? "bg-[var(--accent)] text-white shadow-[0_10px_25px_rgba(59,130,246,0.35)]"
+                    : "text-[var(--muted)] hover:text-white"
+                }`}
               >
                 {p}
               </button>
@@ -270,7 +330,7 @@ export default function Board() {
             <button
               onClick={() => setCPage(Math.min(pageInfo.totalPagesCnt, cPage + 1))}
               disabled={cPage >= pageInfo.totalPagesCnt}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-white disabled:opacity-30 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -279,7 +339,7 @@ export default function Board() {
             <button
               onClick={() => setCPage(pageInfo.totalPagesCnt)}
               disabled={cPage >= pageInfo.totalPagesCnt}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-white disabled:opacity-30 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -288,48 +348,49 @@ export default function Board() {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex-1 flex justify-center">
-              <div className="flex items-center gap-2 bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100 w-full max-w-2xl">
+            <div className="flex flex-1 justify-center">
+              <div className="flex w-full max-w-2xl items-center gap-2 rounded-[1.25rem] border border-[var(--border)] bg-[var(--surface)] p-2">
                 <select
                   value={searchType}
                   onChange={(e) => setSearchType(e.target.value)}
-                  className="pl-4 pr-2 py-2 bg-transparent border-none outline-none font-black text-slate-500 text-sm"
+                  className="bg-transparent pl-4 pr-2 py-2 text-xs text-[var(--muted)] outline-none"
                 >
                   <option value="title">제목</option>
                   <option value="content">내용</option>
                   <option value="title,content">제목+내용</option>
                 </select>
-                <div className="h-4 w-[1px] bg-slate-200"></div>
+                <div className="h-4 w-[1px] bg-[var(--border)]"></div>
                 <input
                   type="text"
                   placeholder="검색어를 입력하세요"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="flex-1 px-4 py-2 bg-transparent border-none outline-none font-bold text-slate-700 placeholder-slate-300"
+                  className="flex-1 bg-transparent px-4 py-2 text-sm text-white outline-none placeholder:text-[var(--muted)]"
                 />
                 <button
                   onClick={handleSearch}
-                  className="px-6 py-3 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-slate-800 transition-all active:scale-95"
+                  className="rounded-lg bg-[var(--accent)] px-6 py-2 text-xs text-white hover:bg-[var(--accent-strong)] transition-all active:scale-95"
                 >
                   검색
                 </button>
               </div>
             </div>
 
-            <button
-              onClick={() => nav(`/board/write?boardId=${boardId}`)}
-              className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              글쓰기
-            </button>
+            {canWrite && (
+              <button
+                onClick={() => nav(`/board/write?boardId=${boardId}`)}
+                className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-xs text-white shadow-[0_18px_35px_rgba(59,130,246,0.35)] hover:bg-[var(--accent-strong)] transition-all active:scale-95"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                글쓰기
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

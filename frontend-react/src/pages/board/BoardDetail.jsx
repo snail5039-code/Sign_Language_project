@@ -97,18 +97,18 @@ export default function BoardDetail() {
 
   if (!article) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
+        <div className="w-12 h-12 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-[var(--bg)] p-8 text-[var(--text)]">
       <div className="max-w-4xl mx-auto">
         <button
           onClick={() => nav("/board")}
-          className="mb-8 flex items-center gap-2 text-slate-400 font-black hover:text-indigo-600 transition-colors group"
+          className="mb-8 flex items-center gap-2 text-slate-300 font-black hover:text-[var(--accent)] transition-colors group"
         >
           <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -116,44 +116,44 @@ export default function BoardDetail() {
           목록으로 돌아가기
         </button>
 
-        <div className="glass rounded-[3rem] overflow-hidden border-slate-100 shadow-2xl animate-fade-in">
+        <div className="rounded-[3rem] overflow-hidden border border-[var(--border)] bg-[rgba(18,27,47,0.94)] shadow-2xl animate-fade-in">
           <div className="p-12">
             <div className="flex items-center gap-3 mb-6">
-              <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-black rounded-full border border-indigo-100 uppercase tracking-widest">
+              <span className="px-4 py-1.5 bg-[var(--accent)]/20 text-[var(--accent)] text-xs font-black rounded-full border border-[rgba(59,130,246,0.35)] uppercase tracking-widest">
                 {boardName}
               </span>
               <span className="text-sm font-bold text-slate-300">#{article.id}</span>
             </div>
 
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight mb-8 leading-tight">
+            <h1 className="text-4xl font-black text-slate-100 tracking-tight mb-8 leading-tight">
               {article.title}
             </h1>
 
-            <div className="flex items-center justify-between pb-8 border-b border-slate-100 mb-8">
+            <div className="flex items-center justify-between pb-8 border-b border-[var(--border)] mb-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
+                <div className="w-12 h-12 bg-[var(--surface-soft)] rounded-2xl flex items-center justify-center text-slate-300">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <div className="text-base font-black text-slate-700">{article.writerName || "익명"}</div>
+                  <div className="text-base font-black text-slate-100">{article.writerName || "익명"}</div>
                   <div className="text-xs font-bold text-slate-400">{article.regDate}</div>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-xs font-black text-slate-300 uppercase tracking-widest mb-1">Views</div>
-                  <div className="text-lg font-black text-slate-700">{article.hit || 0}</div>
+                  <div className="text-lg font-black text-slate-100">{article.hit || 0}</div>
                 </div>
               </div>
             </div>
 
-            <div className="prose prose-slate max-w-none min-h-[300px] text-slate-600 font-bold leading-relaxed whitespace-pre-wrap">
+            <div className="prose prose-invert max-w-none min-h-[300px] text-slate-100 font-bold leading-relaxed whitespace-pre-wrap">
               {article.content}
             </div>
 
-            <div className="mt-12 pt-12 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-12 pt-12 border-t border-[var(--border)] flex items-center justify-between">
               <LikeButton
                 targetId={id}
                 targetType="article"
@@ -165,7 +165,7 @@ export default function BoardDetail() {
                 {article.canModify && (
                   <button
                     onClick={() => nav(`/board/${id}/modify`)}
-                    className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                    className="px-6 py-3 bg-[var(--surface-soft)] border border-[var(--border)] text-slate-100 rounded-2xl font-black hover:bg-[var(--surface)] transition-all shadow-sm active:scale-95"
                   >
                     수정하기
                   </button>
@@ -173,7 +173,7 @@ export default function BoardDetail() {
                 {article.canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="px-6 py-3 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-black hover:bg-rose-100 transition-all shadow-sm active:scale-95"
+                    className="px-6 py-3 bg-rose-500/10 text-rose-300 border border-rose-500/30 rounded-2xl font-black hover:bg-rose-500/20 transition-all shadow-sm active:scale-95"
                   >
                     삭제하기
                   </button>
@@ -182,7 +182,7 @@ export default function BoardDetail() {
             </div>
           </div>
 
-          <div className="bg-slate-50/50 p-12 border-t border-slate-100">
+          <div className="bg-[var(--surface-soft)] p-12 border-t border-[var(--border)]">
             <CommentSection relTypeCode="article" relId={id} />
           </div>
         </div>

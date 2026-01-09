@@ -1,46 +1,66 @@
-import React from "react";
-import HomeSidebar from "../components/home/HomeSidebar";
-
 export default function Home() {
-  const languages = [
-    { name: "영어", code: "en" },
-    { name: "한국어", code: "ko" },
-    { name: "일본어", code: "ja" }
-  ];
-
   return (
-    <div className="min-h-[calc(100-5rem)] bg-slate-50 flex">
-      {/* 메인 콘텐츠 영역 */}
-      <main className="flex-1 p-8 flex flex-col gap-8">
-        {/* 화면 전환 영역 (Large Area) */}
-        <div className="flex-1 glass rounded-[3rem] flex items-center justify-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 group-hover:opacity-100 transition-opacity"></div>
-          <div className="text-center z-10">
-            <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-200 animate-pulse">
-              <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight mb-2">화면 전환</h2>
-            <p className="text-slate-500 font-bold">실시간 수어 번역 및 영상 통화 시스템</p>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-sm text-[var(--muted)]">System Overview</div>
+          <h1 className="text-3xl tracking-tight text-white">Gesture Control Manager</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
+            REST polling 500ms
+          </span>
+          <span className="rounded-full bg-[var(--accent)]/20 px-3 py-1 text-xs text-[var(--accent)]">
+            CONNECTED
+          </span>
+        </div>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+        <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_40px_rgba(6,12,26,0.45)]">
+          <h2 className="text-lg text-white">Live Status</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            실시간으로 모션 인식 상태와 연결 정보를 확인합니다.
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {[
+              { label: "Connection", value: "Stable", tone: "text-[var(--success)]" },
+              { label: "Active Gesture", value: "None", tone: "text-[var(--muted)]" },
+              { label: "FPS", value: "30.2", tone: "text-white" },
+              { label: "Mode", value: "Mouse", tone: "text-white" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
+                <div className="text-xs text-[var(--muted)]">{item.label}</div>
+                <div className={`mt-1 text-lg ${item.tone}`}>{item.value}</div>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
 
-        {/* 하단 언어 버튼 */}
-        <div className="flex justify-center gap-6">
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              className="px-12 py-5 glass rounded-3xl text-xl font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:-translate-y-1 transition-all shadow-lg active:scale-95"
-            >
-              {lang.name}
-            </button>
-          ))}
-        </div>
-      </main>
-
-      {/* 우측 사이드바 */}
-      <HomeSidebar />
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h3 className="text-sm text-white">Quick Actions</h3>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {["Start", "Stop", "Preview", "Refresh"].map((label) => (
+                <button
+                  key={label}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-xs text-[var(--muted)] hover:text-white transition-all"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h3 className="text-sm text-white">최근 업데이트</h3>
+            <ul className="mt-3 space-y-3 text-xs text-[var(--muted)]">
+              <li>Motion Guide 페이지가 준비되었습니다.</li>
+              <li>게시판 UI가 앱 스타일로 변경됩니다.</li>
+              <li>로그인 페이지 디자인을 새롭게 구성했습니다.</li>
+            </ul>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

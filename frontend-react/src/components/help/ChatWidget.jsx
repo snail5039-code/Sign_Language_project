@@ -11,6 +11,8 @@ export default function ChatWidget() {
   const [isChipsCollapsed, setIsChipsCollapsed] = useState(false);
   const [chipsHeight, setChipsHeight] = useState(CHIPS_DEFAULT_HEIGHT);
   const dragState = useRef({ startY: 0, startHeight: CHIPS_DEFAULT_HEIGHT, dragging: false });
+  const dockDragRef = useRef({ startY: 0, startTop: 140, dragging: false });
+  const [dockTop, setDockTop] = useState(140);
 
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState("camera");
@@ -51,10 +53,39 @@ export default function ChatWidget() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleMove = (event) => {
+      if (!dockDragRef.current.dragging) return;
+      const delta = event.clientY - dockDragRef.current.startY;
+      const next = dockDragRef.current.startTop + delta;
+      const min = 80;
+      const max = Math.max(min, window.innerHeight - 120);
+      setDockTop(Math.min(max, Math.max(min, next)));
+    };
+
+    const handleUp = () => {
+      dockDragRef.current.dragging = false;
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, []);
+
   const handleChipsResizeStart = (event) => {
     dragState.current.dragging = true;
     dragState.current.startY = event.clientY;
     dragState.current.startHeight = chipsHeight;
+  };
+
+  const handleDockDragStart = (event) => {
+    dockDragRef.current.dragging = true;
+    dockDragRef.current.startY = event.clientY;
+    dockDragRef.current.startTop = dockTop;
   };
 
   useEffect(() => {
@@ -151,121 +182,135 @@ export default function ChatWidget() {
     }
   };
 
-  return (
-    <>
-      <button className="cw-fab" onClick={() => setOpen((v) => !v)}>
-        {open ? "닫기" : "챗봇"}
+  if (!open) {
+    return (
+      <button
+        className="cw-dock"
+        style={{ top: dockTop }}
+        onMouseDown={handleDockDragStart}
+        onClick={() => setOpen(true)}
+        type="button"
+      >
+        챗봇
       </button>
+    );
+  }
 
-      {open && (
-        <div className={`cw-panel ${isChipsCollapsed ? "is-chips-collapsed" : ""}`}>
-          <div className="cw-header">
-            <div className="cw-header-row">
-              <div className="cw-title">실시간 챗봇</div>
-              <div className="cw-header-actions">
-                <span className="cw-status">LIVE</span>
-                <button
-                  type="button"
-                  className="cw-collapse"
-                  onClick={() => setIsChipsCollapsed((prev) => !prev)}
-                >
-                  {isChipsCollapsed ? "칩 펼치기" : "칩 접기"}
-                </button>
-              </div>
-            </div>
-
-            <div className="cw-tabs">
-              {categories.map((c) => (
-                <button
-                  key={c.key}
-                  className={`cw-tab ${category === c.key ? "active" : ""}`}
-                  onClick={() => setCategory(c.key)}
-                >
-                  {c.label}
-                </button>
-              ))}
+  return (
+    <div
+      className={`cw-panel ${isChipsCollapsed ? "is-chips-collapsed" : ""}`}
+      aria-hidden={!open}
+    >
+      <div className="cw-shell">
+        <div className="cw-header">
+          <div className="cw-header-row">
+            <div className="cw-title">실시간 챗봇</div>
+            <div className="cw-header-actions">
+              <span className="cw-status">LIVE</span>
+              <button
+                type="button"
+                className="cw-collapse"
+                onClick={() => setIsChipsCollapsed((prev) => !prev)}
+              >
+                {isChipsCollapsed ? "칩 펼치기" : "칩 접기"}
+              </button>
+              <button type="button" className="cw-close" onClick={() => setOpen(false)}>
+                닫기
+              </button>
             </div>
           </div>
 
-          <div className="cw-chips" style={{ height: chipsHeight }}>
-            {quickChips.map((chip) => (
-              <button key={chip} className="cw-chip" onClick={() => send(chip)}>
-                {chip}
+          <div className="cw-tabs">
+            {categories.map((c) => (
+              <button
+                key={c.key}
+                className={`cw-tab ${category === c.key ? "active" : ""}`}
+                onClick={() => setCategory(c.key)}
+              >
+                {c.label}
               </button>
             ))}
           </div>
-          <div
-            className="cw-chips-resizer"
-            onMouseDown={handleChipsResizeStart}
-            title="드래그해서 칩 영역 높이 조절"
-          >
-            <span></span>
-          </div>
-
-          <div className="cw-body">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`cw-msg ${msg.role}`}>
-                {msg.type === "text" && (
-                  <div className={`cw-bubble ${msg.role}`}>{msg.text}</div>
-                )}
-
-                {msg.type === "cards" && (
-                  <div className="cw-cards">
-                    {(msg.matched || []).map((id) => (
-                      <button key={id} className="cw-card" onClick={() => openCard(id)}>
-                        <div className="cw-card-id">{id}</div>
-                        <div className="cw-card-open">자세히 보기</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="cw-input">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="질문을 입력하세요 (예: 카메라, 통화 오류)"
-              onKeyDown={(e) => e.key === "Enter" && send(input)}
-            />
-            <button onClick={() => send(input)}>전송</button>
-          </div>
-
-          {selectedCard && (
-            <div className="cw-sheet">
-              <div className="cw-sheet-head">
-                <div className="cw-sheet-title">{selectedCard.title}</div>
-                <button className="cw-x" onClick={() => setSelectedCard(null)}>
-                  닫기
-                </button>
-              </div>
-
-              <div className="cw-section">
-                <div className="cw-section-title">빠른 체크</div>
-                <ul>
-                  {(selectedCard.quickChecks || []).map((x, i) => (
-                    <li key={i}>{x}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="cw-section">
-                <div className="cw-section-title">단계별 해결</div>
-                <ol>
-                  {(selectedCard.steps || []).map((s, i) => (
-                    <li key={i}>
-                      <b>{s.label}</b>
-                      <div>{s.detail}</div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-          )}
         </div>
-      )}
-    </>
+
+        <div className="cw-chips" style={{ height: chipsHeight }}>
+          {quickChips.map((chip) => (
+            <button key={chip} className="cw-chip" onClick={() => send(chip)}>
+              {chip}
+            </button>
+          ))}
+        </div>
+        <div
+          className="cw-chips-resizer"
+          onMouseDown={handleChipsResizeStart}
+          title="드래그해서 칩 영역 높이 조절"
+        >
+          <span></span>
+        </div>
+
+        <div className="cw-body">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`cw-msg ${msg.role}`}>
+              {msg.type === "text" && (
+                <div className={`cw-bubble ${msg.role}`}>{msg.text}</div>
+              )}
+
+              {msg.type === "cards" && (
+                <div className="cw-cards">
+                  {(msg.matched || []).map((id) => (
+                    <button key={id} className="cw-card" onClick={() => openCard(id)}>
+                      <div className="cw-card-id">{id}</div>
+                      <div className="cw-card-open">자세히 보기</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="cw-input">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="질문을 입력하세요 (예: 카메라, 통화 오류)"
+            onKeyDown={(e) => e.key === "Enter" && send(input)}
+          />
+          <button onClick={() => send(input)}>전송</button>
+        </div>
+
+        {selectedCard && (
+          <div className="cw-sheet">
+            <div className="cw-sheet-head">
+              <div className="cw-sheet-title">{selectedCard.title}</div>
+              <button className="cw-x" onClick={() => setSelectedCard(null)}>
+                닫기
+              </button>
+            </div>
+
+            <div className="cw-section">
+              <div className="cw-section-title">빠른 체크</div>
+              <ul>
+                {(selectedCard.quickChecks || []).map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="cw-section">
+              <div className="cw-section-title">단계별 해결</div>
+              <ol>
+                {(selectedCard.steps || []).map((s, i) => (
+                  <li key={i}>
+                    <b>{s.label}</b>
+                    <div>{s.detail}</div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
