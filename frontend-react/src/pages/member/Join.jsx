@@ -4,6 +4,10 @@ import { api } from "../../api/client";
 import { useModal } from "../../context/ModalContext";
 import { useTranslation } from "react-i18next";
 
+function cn(...xs) {
+  return xs.filter(Boolean).join(" ");
+}
+
 export default function Join() {
   const nav = useNavigate();
   const { showModal } = useModal();
@@ -66,9 +70,15 @@ export default function Join() {
     if (name === "loginPw" || name === "loginPw2") {
       if (newForm.loginPw && newForm.loginPw2) {
         if (newForm.loginPw === newForm.loginPw2) {
-          setPwMsg({ text: t("member:join.pw.match"), color: "text-emerald-500" });
+          setPwMsg({
+            text: t("member:join.pw.match"),
+            color: "text-emerald-400",
+          });
         } else {
-          setPwMsg({ text: t("member:join.pw.mismatch"), color: "text-rose-500" });
+          setPwMsg({
+            text: t("member:join.pw.mismatch"),
+            color: "text-rose-400",
+          });
         }
       } else {
         setPwMsg({ text: "", color: "" });
@@ -88,20 +98,20 @@ export default function Join() {
       if (res.data.result === "fail") {
         setLoginIdMsg({
           text: t("member:join.msg.loginId.taken"),
-          color: "text-rose-500",
+          color: "text-rose-400",
         });
         setIsLoginIdChecked(false);
       } else {
         setLoginIdMsg({
           text: t("member:join.msg.loginId.available"),
-          color: "text-emerald-500",
+          color: "text-emerald-400",
         });
         setIsLoginIdChecked(true);
       }
     } catch (e) {
       setLoginIdMsg({
         text: t("member:join.msg.loginId.error"),
-        color: "text-rose-500",
+        color: "text-rose-400",
       });
     }
   };
@@ -118,20 +128,20 @@ export default function Join() {
       if (res.data.result === "fail") {
         setNicknameMsg({
           text: t("member:join.msg.nickname.taken"),
-          color: "text-rose-500",
+          color: "text-rose-400",
         });
         setIsNicknameChecked(false);
       } else {
         setNicknameMsg({
           text: t("member:join.msg.nickname.available"),
-          color: "text-emerald-500",
+          color: "text-emerald-400",
         });
         setIsNicknameChecked(true);
       }
     } catch (e) {
       setNicknameMsg({
         text: t("member:join.msg.nickname.error"),
-        color: "text-rose-500",
+        color: "text-rose-400",
       });
     }
   };
@@ -161,7 +171,7 @@ export default function Join() {
 
       setEmailMsg({
         text: t("member:join.msg.email.sent"),
-        color: "text-indigo-500",
+        color: "text-[var(--accent)]",
       });
     } catch (e) {
       showModal({
@@ -201,7 +211,7 @@ export default function Join() {
       setIsEmailVerified(true);
       setEmailMsg({
         text: t("member:join.msg.email.verified"),
-        color: "text-emerald-500",
+        color: "text-emerald-400",
       });
     } catch (e) {
       showModal({
@@ -314,221 +324,242 @@ export default function Join() {
     }
   };
 
+  const inputCls =
+    "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3 text-sm text-white " +
+    "placeholder:text-[var(--muted)] outline-none transition-all " +
+    "focus:ring-2 focus:ring-[var(--accent)]/35 focus:border-[var(--accent)]/40";
+
+  const labelCls = "mb-2 ml-1 block text-xs font-semibold text-[var(--muted)]";
+  const helperCls = "text-xs ml-2 mt-2 font-semibold";
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center py-20 px-6">
-      <div className="w-full max-w-2xl bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 animate-scale-in">
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-100 -rotate-3">
-            <svg
-              className="w-10 h-10 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+    <div className="min-h-screen px-4 py-16 text-[var(--text)]">
+      {/* background */}
+      <div className="fixed inset-0 -z-10 bg-[var(--bg)]" />
+      <div className="fixed inset-0 -z-10 opacity-70 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.25),transparent_55%),radial-gradient(circle_at_70%_30%,rgba(16,185,129,0.12),transparent_55%),radial-gradient(circle_at_40%_80%,rgba(124,58,237,0.18),transparent_60%)]" />
+
+      <div className="mx-auto w-full max-w-2xl">
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-8 sm:p-12 shadow-[0_18px_40px_rgba(6,12,26,0.45)]">
+          {/* ✅ 홈으로 돌아가기 버튼 (기능/디자인 기존 톤 유지) */}
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => nav("/home")}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[var(--muted)] hover:text-white hover:border-[var(--accent)]/35 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
+              <span aria-hidden>←</span>
+              <span>{t("common:nav.home")}</span>
+            </button>
+            <div />
           </div>
 
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            {t("member:join.title")}
-          </h1>
-          <p className="text-slate-400 mt-3 font-bold">
-            {t("member:join.subtitle")}
-          </p>
-        </div>
-
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.loginId")}
-              </label>
-              <input
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                name="loginId"
-                placeholder={t("member:join.placeholder.loginId")}
-                value={form.loginId}
-                onChange={onChange}
-                onBlur={handleLoginIdBlur}
-              />
-              {loginIdMsg.text && (
-                <p className={`text-xs ml-2 mt-2 font-black ${loginIdMsg.color}`}>
-                  {loginIdMsg.text}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.password")}
-              </label>
-              <input
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                name="loginPw"
-                type="password"
-                placeholder={t("member:join.placeholder.password")}
-                value={form.loginPw}
-                onChange={onChange}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.password2")}
-              </label>
-              <input
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                name="loginPw2"
-                type="password"
-                placeholder={t("member:join.placeholder.password2")}
-                value={form.loginPw2}
-                onChange={onChange}
-              />
-            </div>
-
-            {pwMsg.text && (
-              <p className={`md:col-span-2 text-xs ml-2 -mt-4 font-black ${pwMsg.color}`}>
-                {pwMsg.text}
-              </p>
-            )}
-
-            <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.name")}
-              </label>
-              <input
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                name="name"
-                placeholder={t("member:join.placeholder.name")}
-                value={form.name}
-                onChange={onChange}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.nickname")}
-              </label>
-              <input
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                name="nickname"
-                placeholder={t("member:join.placeholder.nickname")}
-                value={form.nickname}
-                onChange={onChange}
-                onBlur={handleNicknameBlur}
-              />
-              {nicknameMsg.text && (
-                <p className={`text-xs ml-2 mt-2 font-black ${nicknameMsg.color}`}>
-                  {nicknameMsg.text}
-                </p>
-              )}
-            </div>
-
-            <div className="md:col-span-2 space-y-4">
-              <label className="block text-sm font-black text-slate-700 mb-1 ml-1">
-                {t("member:join.field.emailVerify")}
-              </label>
-
-              <div className="flex gap-3">
-                <input
-                  className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                  name="email"
-                  type="email"
-                  placeholder={t("member:join.placeholder.email")}
-                  value={form.email}
-                  onChange={onChange}
-                  disabled={isEmailVerified}
-                />
-                <button
-                  type="button"
-                  onClick={handleSendCode}
-                  disabled={isSendingCode || isEmailVerified}
-                  className="px-8 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 disabled:opacity-50 transition-all whitespace-nowrap shadow-lg"
+          <div className="text-center mb-10">
+            <div className="mx-auto mb-5 h-16 w-16 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] flex items-center justify-center">
+              <div className="h-10 w-10 rounded-2xl bg-[var(--accent)]/20 ring-1 ring-[var(--accent)]/30 flex items-center justify-center">
+                <svg
+                  className="h-6 w-6 text-[var(--accent)]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  {isSendingCode
-                    ? t("member:join.btn.sending")
-                    : t("member:join.btn.sendCode")}
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              {t("member:join.title")}
+            </h1>
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              {t("member:join.subtitle")}
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* loginId */}
+              <div className="md:col-span-2">
+                <label className={labelCls}>{t("member:join.field.loginId")}</label>
+                <input
+                  className={inputCls}
+                  name="loginId"
+                  placeholder={t("member:join.placeholder.loginId")}
+                  value={form.loginId}
+                  onChange={onChange}
+                  onBlur={handleLoginIdBlur}
+                />
+                {loginIdMsg.text && (
+                  <p className={cn(helperCls, loginIdMsg.color)}>{loginIdMsg.text}</p>
+                )}
               </div>
 
-              {!isEmailVerified && (
-                <div className="flex gap-3 animate-slide-in-bottom">
+              {/* pw */}
+              <div>
+                <label className={labelCls}>{t("member:join.field.password")}</label>
+                <input
+                  className={inputCls}
+                  name="loginPw"
+                  type="password"
+                  placeholder={t("member:join.placeholder.password")}
+                  value={form.loginPw}
+                  onChange={onChange}
+                />
+              </div>
+
+              {/* pw2 */}
+              <div>
+                <label className={labelCls}>{t("member:join.field.password2")}</label>
+                <input
+                  className={inputCls}
+                  name="loginPw2"
+                  type="password"
+                  placeholder={t("member:join.placeholder.password2")}
+                  value={form.loginPw2}
+                  onChange={onChange}
+                />
+              </div>
+
+              {pwMsg.text && (
+                <p className={cn("md:col-span-2 -mt-2", helperCls, pwMsg.color)}>{pwMsg.text}</p>
+              )}
+
+              {/* name */}
+              <div>
+                <label className={labelCls}>{t("member:join.field.name")}</label>
+                <input
+                  className={inputCls}
+                  name="name"
+                  placeholder={t("member:join.placeholder.name")}
+                  value={form.name}
+                  onChange={onChange}
+                />
+              </div>
+
+              {/* nickname */}
+              <div>
+                <label className={labelCls}>{t("member:join.field.nickname")}</label>
+                <input
+                  className={inputCls}
+                  name="nickname"
+                  placeholder={t("member:join.placeholder.nickname")}
+                  value={form.nickname}
+                  onChange={onChange}
+                  onBlur={handleNicknameBlur}
+                />
+                {nicknameMsg.text && (
+                  <p className={cn(helperCls, nicknameMsg.color)}>{nicknameMsg.text}</p>
+                )}
+              </div>
+
+              {/* email verify */}
+              <div className="md:col-span-2 space-y-3">
+                <label className={labelCls}>{t("member:join.field.emailVerify")}</label>
+
+                <div className="flex gap-3">
                   <input
-                    className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all placeholder-slate-300 font-bold"
-                    placeholder={t("member:join.placeholder.code")}
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className={cn(inputCls, "flex-1")}
+                    name="email"
+                    type="email"
+                    placeholder={t("member:join.placeholder.email")}
+                    value={form.email}
+                    onChange={onChange}
+                    disabled={isEmailVerified}
                   />
                   <button
                     type="button"
-                    onClick={handleVerifyCode}
-                    disabled={isVerifyingCode}
-                    className="px-8 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 disabled:opacity-50 transition-all whitespace-nowrap shadow-lg"
+                    onClick={handleSendCode}
+                    disabled={isSendingCode || isEmailVerified}
+                    className="shrink-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3 text-xs font-semibold text-white hover:border-[var(--accent)]/40 hover:bg-[var(--surface)] transition-all disabled:opacity-50"
                   >
-                    {isVerifyingCode
-                      ? t("member:join.btn.verifying")
-                      : t("member:join.btn.verify")}
+                    {isSendingCode ? t("member:join.btn.sending") : t("member:join.btn.sendCode")}
                   </button>
                 </div>
-              )}
 
-              {emailMsg.text && (
-                <p className={`text-xs ml-2 font-black ${emailMsg.color}`}>
-                  {emailMsg.text}
-                </p>
-              )}
+                {!isEmailVerified && (
+                  <div className="flex gap-3">
+                    <input
+                      className={cn(inputCls, "flex-1")}
+                      placeholder={t("member:join.placeholder.code")}
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      disabled={isVerifyingCode}
+                      className="shrink-0 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-semibold text-white hover:bg-[var(--accent-strong)] transition-all disabled:opacity-50"
+                    >
+                      {isVerifyingCode ? t("member:join.btn.verifying") : t("member:join.btn.verify")}
+                    </button>
+                  </div>
+                )}
+
+                {emailMsg.text && (
+                  <p className={cn("ml-2 text-xs font-semibold", emailMsg.color)}>{emailMsg.text}</p>
+                )}
+              </div>
+
+              {/* country */}
+              <div className="md:col-span-2">
+                <label className={labelCls}>{t("member:join.field.country")}</label>
+                <select
+                  className={cn(
+                    inputCls,
+                    "appearance-none text-white",
+                    form.countryId ? "text-white" : "text-[var(--muted)]"
+                  )}
+                  name="countryId"
+                  value={form.countryId}
+                  onChange={onChange}
+                >
+                  <option value="">{t("member:join.placeholder.country")}</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {t(`member:country.${country.id}`, {
+                        defaultValue: country.countryName,
+                      })}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
-                {t("member:join.field.country")}
-              </label>
-              <select
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 appearance-none"
-                name="countryId"
-                value={form.countryId}
-                onChange={onChange}
+            {/* submit */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={loading}
+                className="w-full rounded-2xl bg-[var(--accent)] py-4 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(59,130,246,0.28)] hover:bg-[var(--accent-strong)] transition-all disabled:opacity-60 active:scale-[0.99]"
               >
-                <option value="">{t("member:join.placeholder.country")}</option>
-                {countries.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {t(`member:country.${country.id}`, { defaultValue: country.countryName })}
-                  </option>
-                ))}
-              </select>
+                {loading ? t("member:join.btn.submitting") : t("member:join.btn.submit")}
+              </button>
             </div>
-          </div>
 
-          <div className="pt-6">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={loading}
-              className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 active:scale-95"
-            >
-              {loading
-                ? t("member:join.btn.submitting")
-                : t("member:join.btn.submit")}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-slate-400 font-bold">
-              {t("member:join.hint.already")}{" "}
-              <Link
-                to="/login"
-                className="text-indigo-600 hover:text-indigo-500 ml-2"
-              >
-                {t("member:join.hint.loginLink")}
-              </Link>
-            </p>
+            {/* footer */}
+            <div className="text-center">
+              <p className="text-sm text-[var(--muted)]">
+                {t("member:join.hint.already")}{" "}
+                <Link
+                  to="/login"
+                  className="ml-1 text-[var(--accent)] hover:text-white transition-colors"
+                >
+                  {t("member:join.hint.loginLink")}
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* tiny helper */}
+        <p className="mt-6 text-center text-xs text-[var(--muted)]">
+          Gesture OS Manager · Join
+        </p>
       </div>
     </div>
   );
