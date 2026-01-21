@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.List;
 
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 @RestController
 @RequestMapping("/api/members")
 public class MemberController {

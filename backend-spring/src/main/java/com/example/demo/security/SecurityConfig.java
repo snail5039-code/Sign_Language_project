@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
-                .requestCache(cache -> cache.disable()) // API 체인에서 요청 캐시 비활성화 (리다이렉트 방지)
+                .requestCache(cache -> cache.disable())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/error", "/oauth2/success", "/oauth2/**", "/login/**",
@@ -65,11 +65,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/members/login").permitAll()
                         .requestMatchers("/api/members/checkLoginId", "/api/members/checkNickname").permitAll()
                         .requestMatchers("/api/members/oauth2/login").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/help/**", "/api/openai/**").permitAll()
                         .requestMatchers("/api/members/findLoginId", "/api/members/findLoginPw").permitAll()
                         .requestMatchers("/api/members/sendVerificationCode", "/api/members/verifyCode").permitAll()
+
+                        // ✅ auth 관련: 필요한 것만 permitAll
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/bridge/consume").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/boards/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/boards/**").permitAll()
