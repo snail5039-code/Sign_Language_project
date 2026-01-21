@@ -10,6 +10,6 @@ services:
       - "5432:5432"
     volumes:
       - slt_pgdata:/var/lib/postgresql/data
-
+      - ./docs/sql:/docker-entrypoint-initdb.d
 volumes:
   slt_pgdata:

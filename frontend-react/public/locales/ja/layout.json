@@ -1,0 +1,17 @@
+{
+  "sidebar": {
+    "subtitle": "ジェスチャー操作",
+    "title": "マネージャー"
+  },
+  "nav": {
+    "home": "ホーム",
+    "about": "紹介",
+    "board": "掲示板",
+    "motionGuide": "モーションガイド",
+    "download": "ダウンロード"
+  },
+  "status": {
+    "signedIn": "ログイン中",
+    "guest": "ゲストモード"
+  }
+}
