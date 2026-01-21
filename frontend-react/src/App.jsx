@@ -47,7 +47,6 @@ export default function App() {
         {/* 마이페이지 */}
         <Route path="/mypage" element={<MyPage />} />
 
-        {/* 화상통화 */}
       </Route>
 
       {/* 헤더 빼고 싶은 페이지는 Layout 밖으로 */}

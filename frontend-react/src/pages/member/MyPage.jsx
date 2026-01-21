@@ -56,7 +56,10 @@ export default function MyPage() {
       const res = await api.get("/members/mypage");
 
       // 세션만료로 HTML 내려오는 경우 방어
-      if (typeof res.data === "string" && res.data.includes("<!DOCTYPE html>")) {
+      if (
+        typeof res.data === "string" &&
+        res.data.includes("<!DOCTYPE html>")
+      ) {
         showModal({
           title: t("mypage.modal.sessionExpiredTitle"),
           message: t("mypage.modal.sessionExpiredMsg"),
@@ -89,6 +92,30 @@ export default function MyPage() {
       setLoading(false);
     }
   }, [isAuthed, logout, showModal, t]);
+
+  const handleLinkManager = async () => {
+    try {
+      const res = await api.post("/auth/bridge/start"); // 인터셉터가 Authorization 붙임
+      const { code, expiresInSec } = res.data || {};
+      if (!code) throw new Error("NO_CODE");
+
+      // 매니저 앱 열기 (프로토콜)
+      window.location.href = `gestureos://auth?code=${encodeURIComponent(code)}`;
+
+      showModal({
+        title: "매니저 연동",
+        message: `연동 요청을 보냈어. (유효시간: ${expiresInSec ?? 60}초)`,
+        type: "success",
+      });
+    } catch (e) {
+      console.error(e);
+      showModal({
+        title: "연동 실패",
+        message: "매니저 앱이 실행 중인지(또는 설치/프로토콜 등록) 확인해줘.",
+        type: "error",
+      });
+    }
+  };
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -137,9 +164,15 @@ export default function MyPage() {
     if (name === "loginPw" || name === "loginPwConfirm") {
       if (newForm.loginPw || newForm.loginPwConfirm) {
         if (newForm.loginPw === newForm.loginPwConfirm) {
-          setPwMsg({ text: t("mypage.passwordMatch"), color: "text-emerald-500" });
+          setPwMsg({
+            text: t("mypage.passwordMatch"),
+            color: "text-emerald-500",
+          });
         } else {
-          setPwMsg({ text: t("mypage.passwordNotMatch"), color: "text-rose-500" });
+          setPwMsg({
+            text: t("mypage.passwordNotMatch"),
+            color: "text-rose-500",
+          });
         }
       } else {
         setPwMsg({ text: "", color: "" });
@@ -155,13 +188,19 @@ export default function MyPage() {
 
     try {
       const res = await api.get(
-        `/members/checkNickname?nickname=${encodeURIComponent(nickname)}`
+        `/members/checkNickname?nickname=${encodeURIComponent(nickname)}`,
       );
       if (res.data?.result === "fail") {
-        setNicknameMsg({ text: t("mypage.nicknameDuplicate"), color: "text-rose-500" });
+        setNicknameMsg({
+          text: t("mypage.nicknameDuplicate"),
+          color: "text-rose-500",
+        });
         setIsNicknameChecked(false);
       } else {
-        setNicknameMsg({ text: t("mypage.nicknameAvailable"), color: "text-emerald-500" });
+        setNicknameMsg({
+          text: t("mypage.nicknameAvailable"),
+          color: "text-emerald-500",
+        });
         setIsNicknameChecked(true);
       }
     } catch (e) {
@@ -188,7 +227,10 @@ export default function MyPage() {
         message: t("mypage.modal.codeSentMsg"),
         type: "success",
       });
-      setEmailMsg({ text: t("mypage.verificationSent"), color: "text-indigo-500" });
+      setEmailMsg({
+        text: t("mypage.verificationSent"),
+        color: "text-indigo-500",
+      });
       setIsEmailVerified(false);
     } catch (e) {
       showModal({
@@ -223,7 +265,10 @@ export default function MyPage() {
         type: "success",
       });
       setIsEmailVerified(true);
-      setEmailMsg({ text: t("mypage.emailVerified"), color: "text-emerald-500" });
+      setEmailMsg({
+        text: t("mypage.emailVerified"),
+        color: "text-emerald-500",
+      });
     } catch (e) {
       showModal({
         title: t("mypage.modal.verifyFailTitle"),
@@ -257,7 +302,10 @@ export default function MyPage() {
       return;
     }
 
-    if (!isNicknameChecked && editForm.nickname !== (data.member.nickname || "")) {
+    if (
+      !isNicknameChecked &&
+      editForm.nickname !== (data.member.nickname || "")
+    ) {
       showModal({
         title: t("mypage.modal.inputErrorTitle"),
         message: t("mypage.errors.nicknameCheckRequired"),
@@ -266,7 +314,10 @@ export default function MyPage() {
       return;
     }
 
-    if (editForm.nickname !== (data.member.nickname || "") && !data.nicknameChangeAllowed) {
+    if (
+      editForm.nickname !== (data.member.nickname || "") &&
+      !data.nicknameChangeAllowed
+    ) {
       showModal({
         title: t("mypage.modal.inputErrorTitle"),
         message: `${t("mypage.nicknameLimit")}\n${t("mypage.nextChangeDate")}: ${data.nextNicknameChangeDate}`,
@@ -322,17 +373,25 @@ export default function MyPage() {
           <h1 className="text-4xl font-black text-slate-100 tracking-tight">
             {t("mypage.title")}
           </h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleLinkManager}
+              className="px-8 py-4 rounded-2xl font-black transition-all shadow-xl bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)]"
+            >
+              매니저 연동
+            </button>
 
-          <button
-            onClick={handleEditToggle}
-            className={`px-8 py-4 rounded-2xl font-black transition-all shadow-xl ${
-              isEditing
-                ? "bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)]"
-                : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
-            }`}
-          >
-            {isEditing ? t("mypage.cancelEdit") : t("mypage.editProfile")}
-          </button>
+            <button
+              onClick={handleEditToggle}
+              className={`px-8 py-4 rounded-2xl font-black transition-all shadow-xl ${
+                isEditing
+                  ? "bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)]"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+              }`}
+            >
+              {isEditing ? t("mypage.cancelEdit") : t("mypage.editProfile")}
+            </button>
+          </div>
         </div>
 
         <div className="glass rounded-[3rem] p-12 border-[var(--border)] shadow-2xl animate-fade-in">
@@ -343,13 +402,17 @@ export default function MyPage() {
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-wrap items-center gap-4 justify-center md:justify-start mb-4">
-                <h2 className="text-4xl font-black text-slate-100">{member.name}</h2>
+                <h2 className="text-4xl font-black text-slate-100">
+                  {member.name}
+                </h2>
                 <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-black rounded-full border border-indigo-100 uppercase tracking-widest">
                   {member.role}
                 </span>
               </div>
 
-              <p className="text-xl font-bold text-slate-300 mb-6">{member.email}</p>
+              <p className="text-xl font-bold text-slate-300 mb-6">
+                {member.email}
+              </p>
 
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                 <div className="px-5 py-2 bg-[var(--surface-soft)] rounded-2xl text-sm font-black text-slate-200 border border-[var(--border)]">
@@ -400,11 +463,15 @@ export default function MyPage() {
                         name="loginPwConfirm"
                         value={editForm.loginPwConfirm}
                         onChange={handleInputChange}
-                        placeholder={t("mypage.form.passwordConfirmPlaceholder")}
+                        placeholder={t(
+                          "mypage.form.passwordConfirmPlaceholder",
+                        )}
                         className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
                       />
                       {pwMsg.text && (
-                        <p className={`text-xs ml-2 mt-2 font-black ${pwMsg.color}`}>
+                        <p
+                          className={`text-xs ml-2 mt-2 font-black ${pwMsg.color}`}
+                        >
                           {pwMsg.text}
                         </p>
                       )}
@@ -426,16 +493,19 @@ export default function MyPage() {
                       className="flex-1 px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
                     />
 
-                    {editForm.email !== data.member.email && !isEmailVerified && (
-                      <button
-                        type="button"
-                        onClick={handleSendCode}
-                        disabled={isSendingCode}
-                        className="px-6 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 disabled:opacity-50 transition-all shadow-lg"
-                      >
-                        {isSendingCode ? t("mypage.email.sending") : t("mypage.email.sendCode")}
-                      </button>
-                    )}
+                    {editForm.email !== data.member.email &&
+                      !isEmailVerified && (
+                        <button
+                          type="button"
+                          onClick={handleSendCode}
+                          disabled={isSendingCode}
+                          className="px-6 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 disabled:opacity-50 transition-all shadow-lg"
+                        >
+                          {isSendingCode
+                            ? t("mypage.email.sending")
+                            : t("mypage.email.sendCode")}
+                        </button>
+                      )}
                   </div>
 
                   {editForm.email !== data.member.email && !isEmailVerified && (
@@ -453,13 +523,17 @@ export default function MyPage() {
                         disabled={isVerifyingCode}
                         className="px-6 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg"
                       >
-                        {isVerifyingCode ? t("mypage.email.verifying") : t("mypage.email.verify")}
+                        {isVerifyingCode
+                          ? t("mypage.email.verifying")
+                          : t("mypage.email.verify")}
                       </button>
                     </div>
                   )}
 
                   {emailMsg.text && (
-                    <p className={`text-xs ml-2 mt-2 font-black ${emailMsg.color}`}>
+                    <p
+                      className={`text-xs ml-2 mt-2 font-black ${emailMsg.color}`}
+                    >
                       {emailMsg.text}
                     </p>
                   )}
@@ -500,14 +574,21 @@ export default function MyPage() {
                   />
 
                   {nicknameMsg.text && (
-                    <p className={`text-xs ml-2 mt-2 font-black ${nicknameMsg.color}`}>
+                    <p
+                      className={`text-xs ml-2 mt-2 font-black ${nicknameMsg.color}`}
+                    >
                       {nicknameMsg.text}
                     </p>
                   )}
 
                   {!data.nicknameChangeAllowed && (
                     <div className="mt-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-black text-rose-300 flex items-center gap-3">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -515,7 +596,8 @@ export default function MyPage() {
                           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      {t("mypage.nicknameLimit")} ({t("mypage.nextChangeDate")}: {data.nextNicknameChangeDate})
+                      {t("mypage.nicknameLimit")} ({t("mypage.nextChangeDate")}:{" "}
+                      {data.nextNicknameChangeDate})
                     </div>
                   )}
                 </div>
@@ -535,9 +617,21 @@ export default function MyPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
-            { label: t("mypage.stats.articles"), value: stats?.articleCount ?? 0, icon: "POST" },
-            { label: t("mypage.stats.comments"), value: stats?.commentCount ?? 0, icon: "CMT" },
-            { label: t("mypage.stats.likes"), value: stats?.likeCount ?? 0, icon: "LIKE" },
+            {
+              label: t("mypage.stats.articles"),
+              value: stats?.articleCount ?? 0,
+              icon: "POST",
+            },
+            {
+              label: t("mypage.stats.comments"),
+              value: stats?.commentCount ?? 0,
+              icon: "CMT",
+            },
+            {
+              label: t("mypage.stats.likes"),
+              value: stats?.likeCount ?? 0,
+              icon: "LIKE",
+            },
           ].map((stat, i) => (
             <div
               key={i}
@@ -547,7 +641,9 @@ export default function MyPage() {
               <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-[var(--accent)] transition-colors">
                 {stat.label}
               </div>
-              <div className="text-4xl font-black text-slate-100">{stat.value}</div>
+              <div className="text-4xl font-black text-slate-100">
+                {stat.value}
+              </div>
             </div>
           ))}
         </div>
@@ -593,7 +689,8 @@ export default function MyPage() {
                         </div>
                         <div className="text-xs font-bold text-slate-300 mt-2 flex items-center gap-4">
                           <span>
-                            {t("mypage.labels.writtenAt")} {a.regDate?.split("T")[0]}
+                            {t("mypage.labels.writtenAt")}{" "}
+                            {a.regDate?.split("T")[0]}
                           </span>
                           <span>
                             {t("mypage.labels.views")} {a.hitCount || 0}
@@ -606,7 +703,12 @@ export default function MyPage() {
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M9 5l7 7-7 7"
+                        />
                       </svg>
                     </div>
                   ))
@@ -624,7 +726,9 @@ export default function MyPage() {
                   myComments.map((c) => (
                     <div
                       key={c.id}
-                      onClick={() => c.relTypeCode === "article" && nav(`/board/${c.relId}`)}
+                      onClick={() =>
+                        c.relTypeCode === "article" && nav(`/board/${c.relId}`)
+                      }
                       className="p-6 rounded-3xl hover:bg-[rgba(59,130,246,0.12)] cursor-pointer transition-all border border-transparent hover:border-[rgba(59,130,246,0.3)] group"
                     >
                       <div className="text-base font-bold text-slate-200 line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
@@ -661,7 +765,8 @@ export default function MyPage() {
                             {t("mypage.labels.writer")} {a.writerName}
                           </span>
                           <span>
-                            {t("mypage.labels.writtenAt")} {a.regDate?.split("T")[0]}
+                            {t("mypage.labels.writtenAt")}{" "}
+                            {a.regDate?.split("T")[0]}
                           </span>
                         </div>
                       </div>
@@ -671,7 +776,12 @@ export default function MyPage() {
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M9 5l7 7-7 7"
+                        />
                       </svg>
                     </div>
                   ))

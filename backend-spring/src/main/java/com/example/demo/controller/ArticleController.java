@@ -21,7 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.demo.dto.Article;
 import com.example.demo.service.ArticleService;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 @RestController
 @RequestMapping("/api")
 public class ArticleController {
