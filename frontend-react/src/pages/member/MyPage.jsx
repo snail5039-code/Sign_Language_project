@@ -33,7 +33,7 @@ export default function MyPage() {
   const { t } = useTranslation("member");
   const { logout, isAuthed, loading: authLoading } = useAuth();
   const { showModal } = useModal();
-  const nav = useNavigate();
+  const nav = useNavigate(); 
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
