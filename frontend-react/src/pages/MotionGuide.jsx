@@ -143,7 +143,7 @@ export default function MotionGuide() {
                           <img
                             src={thumb}
                             alt={t("detail.imageAlt")}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain p-1"
                             loading="lazy"
                           />
                         ) : (
@@ -186,7 +186,7 @@ export default function MotionGuide() {
                     <img
                       src={selected.media.image}
                       alt={t("detail.imageAlt")}
-                      className="h-40 w-full object-cover"
+                      className="h-40 w-full object-contain p-3"
                       loading="lazy"
                     />
                   ) : (
