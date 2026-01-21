@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/help/**", "/api/openai/**").permitAll()
                         .requestMatchers("/api/members/findLoginId", "/api/members/findLoginPw").permitAll()
                         .requestMatchers("/api/members/sendVerificationCode", "/api/members/verifyCode").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico").permitAll()
+
 
                         // ✅ auth 관련: 필요한 것만 permitAll
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()

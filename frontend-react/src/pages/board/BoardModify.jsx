@@ -4,6 +4,10 @@ import { api } from "../../api/client";
 import { useModal } from "../../context/ModalContext";
 import { useTranslation } from "react-i18next";
 
+function cn(...xs) {
+  return xs.filter(Boolean).join(" ");
+}
+
 export default function BoardModify() {
   const { t } = useTranslation("board");
   const { id } = useParams();
@@ -15,7 +19,8 @@ export default function BoardModify() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.get(`/boards/${id}`)
+    api
+      .get(`/boards/${id}`)
       .then((res) => {
         setTitle(res.data.title ?? "");
         setContent(res.data.content ?? "");
@@ -26,7 +31,7 @@ export default function BoardModify() {
           title: t("modal.errorTitle"),
           message: t("modal.detailFail"),
           type: "error",
-          onClose: () => nav("/board")
+          onClose: () => nav("/board"),
         });
       });
   }, [id, nav, showModal, t]);
@@ -41,7 +46,7 @@ export default function BoardModify() {
       showModal({
         title: t("modal.inputErrorTitle"),
         message: t("modal.inputErrorMsg"),
-        type: "warning"
+        type: "warning",
       });
       return;
     }
@@ -54,14 +59,14 @@ export default function BoardModify() {
         title: t("modal.modifySuccessTitle"),
         message: t("modal.modifySuccessMsg"),
         type: "success",
-        onClose: () => nav(`/board/${id}`)
+        onClose: () => nav(`/board/${id}`),
       });
     } catch (e2) {
       console.error(e2);
       showModal({
         title: t("modal.modifyFailTitle"),
         message: e2?.response?.data?.message || t("modal.modifyFailMsg"),
-        type: "error"
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -69,31 +74,40 @@ export default function BoardModify() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen text-[var(--text)]">
+      <div className="mx-auto max-w-[980px] px-4 py-10">
+        {/* back */}
         <button
           onClick={() => nav(-1)}
-          className="mb-8 flex items-center gap-2 text-slate-400 font-black hover:text-indigo-600 transition-colors group"
+          className="mb-6 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--muted)] hover:text-white hover:border-[var(--accent)] transition-all"
         >
-          <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
           {t("modify.back")}
         </button>
 
-        <div className="glass rounded-[3rem] p-12 border-slate-100 shadow-2xl animate-fade-in">
-          <div className="mb-10">
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">{t("modify.title")}</h1>
-            <p className="text-slate-400 mt-2 font-bold">{t("modify.desc")}</p>
+        {/* card */}
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-10 shadow-[0_18px_40px_rgba(6,12,26,0.45)]">
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              {t("modify.title")}
+            </h1>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("modify.desc")}</p>
           </div>
 
           <form onSubmit={onSave} className="space-y-6">
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
+              <label className="mb-2 ml-1 block text-xs font-semibold text-[var(--muted)]">
                 {t("modify.labelTitle")}
               </label>
               <input
-                className="w-full px-6 py-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder-slate-300 font-bold"
+                className={cn(
+                  "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3 text-sm text-white",
+                  "placeholder:text-[var(--muted)] outline-none transition-all",
+                  "focus:ring-2 focus:ring-[var(--accent)]/35 focus:border-[var(--accent)]/40",
+                  loading && "opacity-70"
+                )}
                 placeholder={t("modify.placeholderTitle")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -102,11 +116,16 @@ export default function BoardModify() {
             </div>
 
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2 ml-1">
+              <label className="mb-2 ml-1 block text-xs font-semibold text-[var(--muted)]">
                 {t("modify.labelContent")}
               </label>
               <textarea
-                className="w-full px-6 py-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder-slate-300 font-bold min-h-[400px] resize-none"
+                className={cn(
+                  "w-full min-h-[420px] rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-4 text-sm text-white",
+                  "placeholder:text-[var(--muted)] outline-none transition-all resize-none",
+                  "focus:ring-2 focus:ring-[var(--accent)]/35 focus:border-[var(--accent)]/40",
+                  loading && "opacity-70"
+                )}
                 placeholder={t("modify.placeholderContent")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -114,18 +133,18 @@ export default function BoardModify() {
               />
             </div>
 
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => nav(-1)}
-                className="flex-1 py-5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all active:scale-95"
+                className="flex-1 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] py-3 text-sm text-[var(--muted)] hover:text-white hover:border-[var(--accent)]/40 transition-all active:scale-[0.99]"
               >
                 {t("modify.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-[2] py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 active:scale-95"
+                className="flex-[2] rounded-2xl bg-[var(--accent)] py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(59,130,246,0.35)] hover:bg-[var(--accent-strong)] transition-all disabled:opacity-60 active:scale-[0.99]"
               >
                 {loading ? t("modify.saving") : t("modify.save")}
               </button>

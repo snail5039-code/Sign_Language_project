@@ -26,7 +26,7 @@ export default function Login() {
       showModal({
         title: t("member:login.modal.inputError"),
         message: t("member:login.modal.needBoth"),
-        type: "warning"
+        type: "warning",
       });
       return;
     }
@@ -44,7 +44,7 @@ export default function Login() {
         title: t("member:login.modal.successTitle"),
         message: t("member:login.modal.successWelcome", { name: res.data.name || i }),
         type: "success",
-        onClose: () => nav("/home", { replace: true })
+        onClose: () => nav("/home", { replace: true }),
       });
     } catch (err) {
       console.error("LOGIN_ERR:", err);
@@ -52,12 +52,12 @@ export default function Login() {
       const errorMsg =
         err?.response?.status === 401
           ? t("member:login.modal.fail401")
-          : (err?.response?.data?.message || t("member:login.modal.failDefault"));
+          : err?.response?.data?.message || t("member:login.modal.failDefault");
 
       showModal({
         title: t("member:login.modal.failTitle"),
         message: errorMsg,
-        type: "error"
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -69,6 +69,19 @@ export default function Login() {
       <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center">
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr,0.9fr]">
           <div className="rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] p-10 shadow-[0_20px_45px_rgba(6,12,26,0.55)]">
+            {/* ✅ 홈으로 돌아가기 버튼 (기능/디자인 기존 톤 유지) */}
+            <div className="mb-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => nav("/home")}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[var(--muted)] hover:text-white hover:border-[var(--accent)]/35 transition-colors"
+              >
+                <span aria-hidden>←</span>
+                <span>{t("common:nav.home")}</span>
+              </button>
+              <div />
+            </div>
+
             <div className="mb-8">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
                 {t("member:login.badge")}

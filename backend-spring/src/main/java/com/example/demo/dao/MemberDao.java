@@ -106,6 +106,7 @@ public interface MemberDao {
                         		, countryId = #{member.countryId}
                         		, nickname = #{member.nickname}
                         		, nicknameUpdatedAt = #{member.nicknameUpdatedAt}::timestamp
+                        		, profile_image_url = #{member.profileImageUrl}
                         	where id = #{id}
                         """)
         void memberModify(@Param("member") Member member, @Param("id") int id);
@@ -129,4 +130,11 @@ public interface MemberDao {
                             WHERE loginid = #{loginId}
                         """)
         boolean existsByLoginId(String loginId);
+
+        @Update("""
+        		UPDATE member
+        		    SET profile_image_url = #{url}
+        		    WHERE id = #{memberId}
+        		""")
+		void updateProfileImageUrl(int memberId, String url);
 }

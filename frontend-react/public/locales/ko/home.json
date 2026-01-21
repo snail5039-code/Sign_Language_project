@@ -1,31 +1,98 @@
 {
+  "footer": "Gesture OS Manager · Home",
+  "hero": {
+    "hint": "스크롤로 더 많은 정보를 확인해요.",
+    "pills": [
+      "Motion Guide",
+      "Gesture Mapping",
+      "Support Chat",
+      "Updates"
+    ],
+    "controls": {
+      "prev": "이전",
+      "next": "다음",
+      "go": "{{n}}번"
+    },
+    "slides": [
+      {
+        "eyebrow": "Gesture OS",
+        "title": "손 제스처를 OS 동작으로 연결하세요.",
+        "desc": "제스처-동작 매핑을 관리하고, 필요한 기능들을 한 곳에서 정리합니다."
+      },
+      {
+        "eyebrow": "Manager UI",
+        "title": "설정과 안내를 ‘홈’에서 바로.",
+        "desc": "처음 들어오는 사용자가 ‘이 웹이 뭔지’ 빠르게 이해할 수 있게 구성했어요."
+      },
+      {
+        "eyebrow": "Support",
+        "title": "문제는 카드로 빠르게 해결.",
+        "desc": "지원 챗에서 자주 발생하는 이슈를 바로 선택하고 가이드대로 해결할 수 있어요."
+      }
+    ]
+  },
+  "features": {
+    "title": "이 웹에서 하는 일",
+    "badge": "Overview",
+    "items": [
+      {
+        "title": "Motion Guide",
+        "desc": "제스처 사용 방법과 권장 환경을 안내합니다."
+      },
+      {
+        "title": "Gesture Mapping",
+        "desc": "제스처를 동작(클릭/스크롤/단축키 등)으로 매핑합니다."
+      },
+      {
+        "title": "게시판",
+        "desc": "공지/질문/공유를 한 곳에서 관리합니다."
+      },
+      {
+        "title": "지원 챗",
+        "desc": "자주 겪는 문제를 카드로 빠르게 해결합니다."
+      }
+    ]
+  },
+  "highlights": {
+    "title": "홈에서 바로 보이는 핵심",
+    "desc": "exe에 들어있는 값(실시간 스냅샷)은 빼고, 웹에서 의미 있는 내용만 정리했어요.",
+    "items": [
+      {
+        "title": "첫인상",
+        "desc": "홈에서 이 프로젝트가 뭔지 한눈에 이해."
+      },
+      {
+        "title": "가이드 중심",
+        "desc": "처음 사용자도 Motion Guide로 빠르게 적응."
+      },
+      {
+        "title": "정돈된 구성",
+        "desc": "기능을 너무 많이 나열하지 않고 핵심만."
+      },
+      {
+        "title": "자연스러운 연출",
+        "desc": "스크롤 리빌로 부드럽게 정보가 등장."
+      }
+    ]
+  },
+  "cta": {
+    "title": "이제 홈이 ‘홈’ 같아야 해",
+    "desc": "슬라이드/리빌 효과로 첫 화면을 풍성하게 만들었고, 불필요한 정보는 빼두었어요.",
+    "chips": [
+      "간단하지만 고급스럽게",
+      "불필요한 정보 제거",
+      "스크롤 연출",
+      "핵심만"
+    ]
+  },
+  "note": {
+    "title": "참고",
+    "desc": "홈은 소개/정리용. 실시간 상태/실행 버튼 같은 건 exe 쪽이 중심이에요.",
+    "box": "필요하면 ‘소개’ 페이지에 더 상세 설명(이미지/도표)도 자연스럽게 붙일 수 있어요."
+  },
+  
   "systemOverview": "시스템 개요",
   "title": "Gesture OS Manager",
-
-  "liveStatus": {
-    "title": "실시간 상태",
-    "desc": "실시간으로 모션 인식 상태와 연결 정보를 확인합니다.",
-    "card": {
-      "connection": "연결",
-      "activeGesture": "활성 제스처",
-      "fps": "FPS",
-      "mode": "모드"
-    },
-    "value": {
-      "stable": "안정적",
-      "none": "없음",
-      "mouse": "마우스"
-    }
-  },
-
-  "quickActions": {
-    "title": "빠른 실행",
-    "start": "시작",
-    "stop": "중지",
-    "preview": "미리보기",
-    "refresh": "새로고침"
-  },
-
   "recentUpdates": {
     "title": "최근 업데이트",
     "items": [

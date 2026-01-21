@@ -353,3 +353,97 @@
   margin-bottom: 6px;
   color: var(--cw-ink);
 }
+
+/* =========================
+   i18n(특히 일본어) 길이 대응
+   - 기능/로직 변경 없음 (CSS만)
+   ========================= */
+
+/* 헤더 한 줄 유지: 타이틀은 줄임표 처리, 우측 액션은 줄바꿈 금지 */
+.cw-header-row {
+  /* 기존 flex 유지 + overflow 컨트롤 */
+  flex-wrap: nowrap;
+}
+
+.cw-title {
+  /* 왼쪽 타이틀이 줄바꿈되며 레이아웃 깨지는 걸 방지 */
+  flex: 1 1 auto;
+  min-width: 0;
+  /* ✅ ellipsis 동작 필수 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cw-header-actions {
+  flex: 0 0 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  /* ✅ 우측 버튼들이 아래로 떨어지는 걸 최소화 */
+  white-space: nowrap;
+}
+
+/* 버튼/상태 뱃지 텍스트가 길어도 내부에서 줄바꿈하지 않게 */
+.cw-status,
+.cw-collapse,
+.cw-close {
+  white-space: nowrap;
+}
+
+/* 일본어가 길어서 버튼이 커지는 문제: 약간 더 컴팩트하게 */
+.cw-collapse,
+.cw-close {
+  padding: 6px 8px;
+  /* 기존보다 살짝 줄임 */
+  font-size: 10.5px;
+  /* 살짝 줄임 */
+  letter-spacing: 0.01em;
+}
+
+/* 상태 뱃지도 조금 컴팩트 */
+.cw-status {
+  padding: 4px 7px;
+  font-size: 10.5px;
+}
+
+/* 액션 영역이 너무 길면 버튼 텍스트를 줄임표로 처리(한 줄 유지) */
+.cw-collapse,
+.cw-close {
+  max-width: 110px;
+  /* 필요시 100~140 사이로 조절 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 도크 버튼(열기 버튼)도 일본어로 길면 깨질 수 있어서 한 줄+줄임표 */
+.cw-dock {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  /* 글자 길 때 조금이라도 공간 확보 */
+}
+
+/* 작은 화면(또는 창 좁혔을 때) 추가 보정 */
+@media (max-width: 420px) {
+  .cw-panel {
+    width: 340px;
+    /* 너무 좁으면 헤더가 더 터지니 살짝 줄임 */
+  }
+
+  .cw-title {
+    font-size: 16px;
+    /* 타이틀도 약간 줄임 */
+  }
+
+  .cw-collapse,
+  .cw-close,
+  .cw-status {
+    font-size: 10px;
+  }
+
+  .cw-collapse,
+  .cw-close {
+    max-width: 96px;
+  }
+}
