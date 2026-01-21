@@ -64,15 +64,6 @@ export default function MotionGuide() {
           <div className="text-sm text-[var(--muted)]">{t("navTitle")}</div>
           <h1 className="text-2xl tracking-tight text-white">{t("title")}</h1>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
-            {t("status.live")}
-          </span>
-          <span className="rounded-full bg-[var(--accent)]/20 px-3 py-1 text-xs text-[var(--accent)]">
-            {t("status.ready")}
-          </span>
-        </div>
       </header>
 
       {/* mode tabs + search */}
@@ -143,7 +134,7 @@ export default function MotionGuide() {
                           <img
                             src={thumb}
                             alt={t("detail.imageAlt")}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain p-1"
                             loading="lazy"
                           />
                         ) : (
@@ -186,7 +177,7 @@ export default function MotionGuide() {
                     <img
                       src={selected.media.image}
                       alt={t("detail.imageAlt")}
-                      className="h-40 w-full object-cover"
+                      className="h-40 w-full object-contain p-3"
                       loading="lazy"
                     />
                   ) : (
