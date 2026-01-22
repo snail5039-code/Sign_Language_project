@@ -1,37 +1,38 @@
 {
   "join": {
-    "title": "Sign up",
+    "title": "Sign Up",
     "subtitle": "Please enter your information to get started.",
     "field": {
-      "loginId": "ID",
+      "loginId": "User ID",
       "password": "Password",
-      "password2": "Confirm password",
+      "password2": "Confirm Password",
       "name": "Name",
       "nickname": "Nickname",
-      "emailVerify": "Email verification",
+      "emailVerify": "Email Verification",
       "country": "Country"
     },
     "placeholder": {
-      "loginId": "Enter your ID",
-      "password": "Password",
-      "password2": "Confirm password",
+      "loginId": "Enter your user ID",
+      "password": "Enter your password",
+      "password2": "Confirm your password",
       "name": "Enter your name",
-      "nickname": "Choose a nickname",
+      "nickname": "Nickname to use",
       "email": "example@email.com",
       "code": "6-digit code",
       "country": "Select your country"
     },
     "pw": {
+      "tooShort": "Password must be at least 6 characters.",
       "match": "Passwords match.",
       "mismatch": "Passwords do not match."
     },
     "btn": {
-      "sendCode": "Send code",
+      "sendCode": "Send Code",
       "sending": "Sending..",
       "verify": "Verify",
-      "verifying": "Verifying..",
-      "submit": "Complete sign up",
-      "submitting": "Signing up.."
+      "verifying": "Checking..",
+      "submit": "Complete Sign Up",
+      "submitting": "Creating account.."
     },
     "hint": {
       "already": "Already have an account?",
@@ -39,58 +40,57 @@
     },
     "msg": {
       "loginId": {
-        "taken": "This ID is already taken.",
-        "available": "This ID is available.",
-        "error": "Failed to check ID."
+        "taken": "This user ID is already in use.",
+        "available": "This user ID is available.",
+        "error": "Error while checking user ID"
       },
       "nickname": {
-        "taken": "This nickname is already taken.",
+        "taken": "This nickname is already in use.",
         "available": "This nickname is available.",
-        "error": "Failed to check nickname."
+        "error": "Error while checking nickname"
       },
       "email": {
-        "sent": "Verification code has been sent.",
-        "verified": "Email verified."
+        "sent": "A verification code has been sent.",
+        "verified": "Email verified"
       }
     },
     "modal": {
-      "inputError": "Input error",
+      "inputError": "Input Error",
       "sendOkTitle": "Sent",
       "sendOkBody": "A verification code has been sent. Please check your email.",
       "verifyOkTitle": "Verified",
-      "verifyOkBody": "Email verification completed.",
+      "verifyOkBody": "Email verification is complete.",
       "joinOkTitle": "Success",
-      "joinOkBody": "Sign up completed. Redirecting to login.",
-      "sendFailTitle": "Send failed",
-      "verifyFailTitle": "Verification failed",
-      "joinFailTitle": "Sign up failed",
-      "joinFailBody": "An error occurred during sign up.",
+      "joinOkBody": "Sign-up complete. Redirecting to the login page.",
+      "sendFailTitle": "Send Failed",
+      "verifyFailTitle": "Verification Failed",
+      "joinFailTitle": "Sign-up Failed",
+      "joinFailBody": "An error occurred during sign-up.",
       "need": {
-        "loginId": "Please enter your ID.",
-        "loginIdCheck": "Please check ID availability.",
+        "loginId": "Please enter your user ID.",
+        "loginIdCheck": "Please check user ID availability.",
         "password": "Please enter your password.",
         "passwordMismatch": "Passwords do not match.",
         "name": "Please enter your name.",
         "email": "Please enter your email.",
         "emailVerify": "Email verification is required.",
-        "nickname": "Please enter your nickname.",
+        "nickname": "Please enter a nickname.",
         "nicknameCheck": "Please check nickname availability.",
         "country": "Please select your country.",
         "code": "Please enter the verification code."
       }
     }
   },
-
   "login": {
     "badge": "Secure Access",
     "title": "Login",
     "subtitle": "Go to the dashboard and motion guide.",
     "field": {
-      "loginId": "ID",
+      "loginId": "User ID",
       "password": "Password"
     },
     "placeholder": {
-      "loginId": "Enter your ID",
+      "loginId": "Enter your user ID",
       "password": "Enter your password"
     },
     "btn": {
@@ -99,32 +99,30 @@
     },
     "link": {
       "findId": "Find ID",
-      "findPw": "Find password",
-      "join": "Sign up"
+      "findPw": "Find Password",
+      "join": "Sign Up"
     },
     "modal": {
-      "inputError": "Input error",
-      "needBoth": "Please enter both ID and password.",
-      "successTitle": "Login success",
+      "inputError": "Input Error",
+      "needBoth": "Please enter both your user ID and password.",
+      "successTitle": "Login Successful",
       "successWelcome": "Welcome, {{name}}.",
-      "failTitle": "Login failed",
-      "fail401": "Invalid ID or password.",
-      "failDefault": "An error occurred during login."
+      "failTitle": "Login Failed",
+      "fail401": "Invalid user ID or password.",
+      "failDefault": "An error occurred while logging in."
     }
   },
-
   "social": {
-    "title": "Social login",
-    "subtitle": "Start quickly with Google, Kakao, or Naver.",
+    "title": "Social Login",
+    "subtitle": "Get started instantly with Google, Kakao, or Naver.",
     "provider": {
       "google": "Google",
       "kakao": "Kakao",
       "naver": "Naver"
     },
     "continue": "Continue",
-    "hint": "After linking your account, you will be redirected to the dashboard."
+    "hint": "After linking your account, you will be redirected to the dashboard automatically."
   },
-
   "findLoginId": {
     "title": "Find ID",
     "subtitle": "Enter the name and email you used when signing up.",
@@ -139,114 +137,106 @@
     "btn": {
       "submit": "Find ID",
       "loading": "Searching...",
-      "back": "Go back"
+      "back": "Back"
     },
     "link": {
-      "findPw": "Find password",
+      "findPw": "Find Password",
       "login": "Login"
     },
     "modal": {
-      "inputError": "Input error",
+      "inputError": "Input Error",
       "needName": "Please enter your name.",
       "needEmail": "Please enter your email.",
-      "successTitle": "ID found",
+      "successTitle": "Found",
       "failTitle": "Failed",
       "failDefault": "An error occurred while finding your ID.",
-      "successMessage": "{{message}}\nYour ID is [ {{loginId}} ]."
+      "successMessage": "{{message}}\nYour user ID is [ {{loginId}} ]."
     }
   },
-
   "findLoginPw": {
     "title": "Find Password",
     "subtitle": "Enter account info to receive a temporary password.",
     "field": {
-      "loginId": "ID",
+      "loginId": "User ID",
       "email": "Email"
     },
     "placeholder": {
-      "loginId": "Enter your ID",
+      "loginId": "Enter your user ID",
       "email": "example@email.com"
     },
     "btn": {
-      "submit": "Find Password",
+      "submit": "Reset Password",
       "loading": "Processing...",
-      "back": "Go back"
+      "back": "Back"
     },
     "link": {
       "findId": "Find ID",
       "login": "Login"
     },
     "modal": {
-      "inputError": "Input error",
-      "needLoginId": "Please enter your ID.",
+      "inputError": "Input Error",
+      "needLoginId": "Please enter your user ID.",
       "needEmail": "Please enter your email.",
       "successTitle": "Success",
       "failTitle": "Failed",
-      "failDefault": "An error occurred while finding your password."
+      "failDefault": "An error occurred while resetting your password."
     }
   },
-
   "oauth": {
-    "processing": "Signing you in...",
+    "processing": "Processing login...",
     "socialProcessing": "Processing social login...",
-    "noToken": "No token found. Redirecting to login."
+    "noToken": "No token found. Redirecting to the login page."
   },
-
   "logout": {
     "loading": "Logging out..."
   },
-
   "country": {
     "1": "Korea",
     "2": "United States",
     "3": "Japan"
   },
-
   "socialLogin": {
-    "google": "Login with Google",
-    "naver": "Login with Naver",
-    "kakao": "Login with Kakao"
+    "google": "Continue with Google",
+    "naver": "Continue with Naver",
+    "kakao": "Continue with Kakao"
   },
-
   "mypage": {
     "title": "My Page",
     "editProfile": "Edit Profile",
-    "cancelEdit": "Cancel Edit",
-
+    "cancelEdit": "Cancel",
     "sessionExpired": "Your session has expired. Please log in again.",
-    "loadError": "Failed to load My Page.",
-
-    "newPassword": "New Password",
-    "passwordConfirm": "Confirm Password",
+    "loadError": "An error occurred while loading My Page.",
     "passwordMatch": "Passwords match.",
     "passwordNotMatch": "Passwords do not match.",
-
-    "email": "Email",
-    "sendCode": "Send Code",
-    "sending": "Sending...",
-    "verify": "Verify",
-    "verifying": "Verifying...",
-    "verificationSent": "Verification code has been sent.",
+    "verificationSent": "A verification code has been sent.",
     "verificationComplete": "Email verified",
-
-    "country": "Country",
     "selectCountry": "Select country",
-
-    "nickname": "Nickname",
     "nicknameDuplicate": "This nickname is already in use.",
     "nicknameAvailable": "This nickname is available.",
-    "nicknameLimit": "You can change your nickname once every 30 days.",
+    "nicknameLimit": "You can change your nickname only once every 30 days.",
     "nextChangeDate": "Next available date",
+    "saveChanges": "Save changes",
 
-    "saveChanges": "Save Changes",
+    "actions": {
+      "linkManager": "Link Manager"
+    },
+
+    "profile": {
+      "label": "Profile Photo",
+      "pickCancel": "Cancel selection",
+      "revertDefault": "Revert to default image",
+      "hintApplyOnSave": "* Changes apply only after saving.",
+      "currentUrl": "* Current saved URL",
+      "none": "(none)"
+    },
 
     "form": {
-      "newPassword": "New Password",
-      "passwordConfirm": "Confirm Password",
+      "newPassword": "New password",
+      "passwordConfirm": "Confirm password",
       "email": "Email",
       "country": "Country",
       "nickname": "Nickname",
-      "passwordPlaceholder": "Enter only to change",
+      "passwordPlaceholder": "Only if changing",
       "passwordConfirmPlaceholder": "Confirm password",
       "countrySelect": "Select country"
     },
@@ -256,7 +246,7 @@
       "sending": "Sending",
       "codePlaceholder": "6-digit code",
       "verify": "Verify",
-      "verifying": "Verifying"
+      "verifying": "Checking"
     },
 
     "email": {
@@ -264,36 +254,33 @@
       "sending": "Sending",
       "codePlaceholder": "6-digit code",
       "verify": "Verify",
-      "verifying": "Verifying"
+      "verifying": "Checking"
     },
 
     "stats": {
-      "articles": "My Articles",
-      "comments": "My Comments",
-      "likes": "Likes Received"
+      "articles": "Posts",
+      "comments": "Comments",
+      "likes": "Likes"
     },
 
     "tabs": {
-      "myArticles": "My Articles",
-      "myComments": "My Comments",
-      "likedArticles": "Liked Posts",
-      "articles": "My Articles",
-      "comments": "My Comments",
-      "likes": "Liked Posts"
+      "articles": "My posts",
+      "comments": "My comments",
+      "likes": "Liked posts"
     },
 
     "empty": {
-      "articles": "You haven't written any articles.",
-      "comments": "You haven't written any comments.",
-      "likes": "You haven't liked any posts."
+      "articles": "No posts yet.",
+      "comments": "No comments yet.",
+      "likes": "No liked posts yet."
     },
 
     "labels": {
       "id": "ID",
       "joined": "Joined",
       "nickname": "NICKNAME",
-      "writer": "Writer",
-      "writtenAt": "Written at",
+      "writer": "Author",
+      "writtenAt": "Date",
       "views": "Views"
     },
 
@@ -301,21 +288,30 @@
       "input": "Input Error",
       "passwordMismatch": "Passwords do not match.",
       "emailRequired": "Email verification is required.",
-      "nicknameCheckRequired": "Please check nickname duplication.",
-      "sendFail": "Failed to send code.",
-      "verifyFail": "Verification failed.",
-      "updateFail": "Failed to update profile."
+      "nicknameCheckRequired": "Nickname availability check is required.",
+      "sendFail": "Failed to send code",
+      "verifyFail": "Verification failed",
+      "updateFail": "An error occurred while updating."
     },
 
     "success": {
       "codeSent": "A verification code has been sent. Please check your email.",
-      "verified": "Email has been successfully verified.",
+      "verified": "Email verification is complete.",
       "updated": "Profile updated successfully."
     },
 
     "modal": {
       "updatedTitle": "Updated",
-      "updatedMsg": "Profile updated successfully."
+      "updatedMsg": "Profile updated successfully.",
+
+      "linkTitle": "Link Manager",
+      "linkMsg": "Link request sent. (Valid for {{sec}}s)",
+      "linkFailTitle": "Link Failed",
+      "linkFailMsg": "Make sure the Manager app is running (or installed / protocol registered).",
+
+      "uploadFailTitle": "Upload Failed",
+      "uploadOnlyImage": "Only image files are allowed.",
+      "uploadMaxSize": "Please upload a file under 3MB."
     }
   }
 }

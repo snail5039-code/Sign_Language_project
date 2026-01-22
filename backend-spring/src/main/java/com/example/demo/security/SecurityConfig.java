@@ -71,7 +71,6 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico").permitAll()
 
-
                         // ✅ auth 관련: 필요한 것만 permitAll
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
@@ -88,16 +87,23 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain oauth2Chain(HttpSecurity http) throws Exception {
+    SecurityFilterChain oauth2Chain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth/**", "/login/oauth2/**", "/login**").permitAll()
-                        .anyRequest().authenticated())
-                .oauth2Login(oauth -> oauth
-                        .successHandler(oAuth2SuccessHandler));
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico").permitAll()
+
+                // ✅✅✅ 핵심: /oauth2/** 추가
+                .requestMatchers("/oauth2/**", "/oauth/**", "/login/oauth2/**", "/login**").permitAll()
+
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth -> oauth.successHandler(oAuth2SuccessHandler));
 
         return http.build();
     }
+
+
 }

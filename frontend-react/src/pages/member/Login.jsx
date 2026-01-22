@@ -33,26 +33,48 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const res = await api.post("/members/login", { loginId: i, loginPw: p });
-      const token = res?.data?.accessToken;
 
-      if (!token) throw new Error("NO_TOKEN");
+      const res = await api.post("/members/login", { loginId: i, loginPw: p });
+
+      // validateStatus 등으로 401도 resolve 되는 케이스 방어
+      if (!res || res.status < 200 || res.status >= 300) {
+        const e = new Error("HTTP_ERROR");
+        e.response = res;
+        throw e;
+      }
+
+      const token =
+        res?.data?.accessToken ??
+        res?.data?.token ??
+        res?.data?.data?.accessToken ??
+        res?.headers?.authorization?.replace(/^Bearer\s+/i, "");
+
+      if (!token) {
+        const e = new Error("NO_TOKEN");
+        e.response = res;
+        throw e;
+      }
 
       await loginWithToken(token);
 
       showModal({
         title: t("member:login.modal.successTitle"),
-        message: t("member:login.modal.successWelcome", { name: res.data.name || i }),
+        message: t("member:login.modal.successWelcome", { name: res?.data?.name || i }),
         type: "success",
         onClose: () => nav("/home", { replace: true }),
       });
     } catch (err) {
       console.error("LOGIN_ERR:", err);
 
+      const status = err?.response?.status;
+
+      // 유저 노출 문구는 상태코드 기반으로 고정
       const errorMsg =
-        err?.response?.status === 401
+        status === 401
           ? t("member:login.modal.fail401")
-          : err?.response?.data?.message || t("member:login.modal.failDefault");
+          : err?.message === "NO_TOKEN"
+            ? t("member:login.modal.failDefault")
+            : err?.response?.data?.message || t("member:login.modal.failDefault");
 
       showModal({
         title: t("member:login.modal.failTitle"),
@@ -69,7 +91,6 @@ export default function Login() {
       <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center">
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr,0.9fr]">
           <div className="rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] p-10 shadow-[0_20px_45px_rgba(6,12,26,0.55)]">
-            {/* ✅ 홈으로 돌아가기 버튼 (기능/디자인 기존 톤 유지) */}
             <div className="mb-6 flex items-center justify-between">
               <button
                 type="button"
@@ -86,19 +107,13 @@ export default function Login() {
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
                 {t("member:login.badge")}
               </div>
-              <h1 className="text-3xl tracking-tight text-white">
-                {t("member:login.title")}
-              </h1>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {t("member:login.subtitle")}
-              </p>
+              <h1 className="text-3xl tracking-tight text-white">{t("member:login.title")}</h1>
+              <p className="mt-2 text-sm text-[var(--muted)]">{t("member:login.subtitle")}</p>
             </div>
 
             <form className="space-y-6" onSubmit={onSubmit}>
               <div>
-                <label className="block text-xs text-[var(--muted)]">
-                  {t("member:login.field.loginId")}
-                </label>
+                <label className="block text-xs text-[var(--muted)]">{t("member:login.field.loginId")}</label>
                 <input
                   className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-white outline-none focus:border-[var(--accent)]"
                   value={loginId}
@@ -110,9 +125,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-xs text-[var(--muted)]">
-                  {t("member:login.field.password")}
-                </label>
+                <label className="block text-xs text-[var(--muted)]">{t("member:login.field.password")}</label>
                 <input
                   className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-white outline-none focus:border-[var(--accent)]"
                   value={loginPw}
@@ -150,9 +163,7 @@ export default function Login() {
           <div className="rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] p-10 shadow-[0_20px_45px_rgba(6,12,26,0.55)]">
             <div className="mb-6">
               <h2 className="text-lg text-white">{t("member:social.title")}</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {t("member:social.subtitle")}
-              </p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{t("member:social.subtitle")}</p>
             </div>
 
             <SocialLoginButtons />

@@ -30,6 +30,7 @@ export default function Join() {
   const [nicknameMsg, setNicknameMsg] = useState({ text: "", color: "" });
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
 
+  // ✅ 비번 메시지: 6자리 미만 경고 + 일치/불일치
   const [pwMsg, setPwMsg] = useState({ text: "", color: "" });
 
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,30 @@ export default function Join() {
       .then((res) => setCountries(res.data))
       .catch((e) => console.error("Failed to fetch countries", e));
   }, []);
+
+  // ✅ 비밀번호 helper (6자리 미만이면 경고 우선)
+  const computePwMsg = (pw, pw2) => {
+    const a = (pw ?? "").trim();
+    const b = (pw2 ?? "").trim();
+
+    if (!a && !b) return { text: "", color: "" };
+
+    // 1) 길이 경고가 최우선
+    if (a && a.length > 0 && a.length < 6) {
+      return {
+        text: t("member:join.pw.tooShort"),
+        color: "text-amber-400",
+      };
+    }
+
+    // 2) 길이 OK일 때만 일치/불일치 판단
+    if (a && b) {
+      if (a === b) return { text: t("member:join.pw.match"), color: "text-emerald-400" };
+      return { text: t("member:join.pw.mismatch"), color: "text-rose-400" };
+    }
+
+    return { text: "", color: "" };
+  };
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -68,21 +93,7 @@ export default function Join() {
     }
 
     if (name === "loginPw" || name === "loginPw2") {
-      if (newForm.loginPw && newForm.loginPw2) {
-        if (newForm.loginPw === newForm.loginPw2) {
-          setPwMsg({
-            text: t("member:join.pw.match"),
-            color: "text-emerald-400",
-          });
-        } else {
-          setPwMsg({
-            text: t("member:join.pw.mismatch"),
-            color: "text-rose-400",
-          });
-        }
-      } else {
-        setPwMsg({ text: "", color: "" });
-      }
+      setPwMsg(computePwMsg(newForm.loginPw, newForm.loginPw2));
     }
   };
 
@@ -91,28 +102,17 @@ export default function Join() {
     if (!loginId) return;
 
     try {
-      const res = await api.get(
-        `/members/checkLoginId?loginId=${encodeURIComponent(loginId)}`
-      );
+      const res = await api.get(`/members/checkLoginId?loginId=${encodeURIComponent(loginId)}`);
 
       if (res.data.result === "fail") {
-        setLoginIdMsg({
-          text: t("member:join.msg.loginId.taken"),
-          color: "text-rose-400",
-        });
+        setLoginIdMsg({ text: t("member:join.msg.loginId.taken"), color: "text-rose-400" });
         setIsLoginIdChecked(false);
       } else {
-        setLoginIdMsg({
-          text: t("member:join.msg.loginId.available"),
-          color: "text-emerald-400",
-        });
+        setLoginIdMsg({ text: t("member:join.msg.loginId.available"), color: "text-emerald-400" });
         setIsLoginIdChecked(true);
       }
     } catch (e) {
-      setLoginIdMsg({
-        text: t("member:join.msg.loginId.error"),
-        color: "text-rose-400",
-      });
+      setLoginIdMsg({ text: t("member:join.msg.loginId.error"), color: "text-rose-400" });
     }
   };
 
@@ -121,28 +121,17 @@ export default function Join() {
     if (!nickname) return;
 
     try {
-      const res = await api.get(
-        `/members/checkNickname?nickname=${encodeURIComponent(nickname)}`
-      );
+      const res = await api.get(`/members/checkNickname?nickname=${encodeURIComponent(nickname)}`);
 
       if (res.data.result === "fail") {
-        setNicknameMsg({
-          text: t("member:join.msg.nickname.taken"),
-          color: "text-rose-400",
-        });
+        setNicknameMsg({ text: t("member:join.msg.nickname.taken"), color: "text-rose-400" });
         setIsNicknameChecked(false);
       } else {
-        setNicknameMsg({
-          text: t("member:join.msg.nickname.available"),
-          color: "text-emerald-400",
-        });
+        setNicknameMsg({ text: t("member:join.msg.nickname.available"), color: "text-emerald-400" });
         setIsNicknameChecked(true);
       }
     } catch (e) {
-      setNicknameMsg({
-        text: t("member:join.msg.nickname.error"),
-        color: "text-rose-400",
-      });
+      setNicknameMsg({ text: t("member:join.msg.nickname.error"), color: "text-rose-400" });
     }
   };
 
@@ -159,9 +148,7 @@ export default function Join() {
     setIsSendingCode(true);
 
     try {
-      await api.post("/members/sendVerificationCode", {
-        email: form.email.trim(),
-      });
+      await api.post("/members/sendVerificationCode", { email: form.email.trim() });
 
       showModal({
         title: t("member:join.modal.sendOkTitle"),
@@ -169,10 +156,7 @@ export default function Join() {
         type: "success",
       });
 
-      setEmailMsg({
-        text: t("member:join.msg.email.sent"),
-        color: "text-[var(--accent)]",
-      });
+      setEmailMsg({ text: t("member:join.msg.email.sent"), color: "text-[var(--accent)]" });
     } catch (e) {
       showModal({
         title: t("member:join.modal.sendFailTitle"),
@@ -209,10 +193,7 @@ export default function Join() {
       });
 
       setIsEmailVerified(true);
-      setEmailMsg({
-        text: t("member:join.msg.email.verified"),
-        color: "text-emerald-400",
-      });
+      setEmailMsg({ text: t("member:join.msg.email.verified"), color: "text-emerald-400" });
     } catch (e) {
       showModal({
         title: t("member:join.modal.verifyFailTitle"),
@@ -243,6 +224,14 @@ export default function Join() {
       return showModal({
         title: t("member:join.modal.inputError"),
         message: t("member:join.modal.need.password"),
+        type: "warning",
+      });
+
+    // ✅ 6자리 이상 프론트에서도 즉시 차단
+    if (form.loginPw.trim().length < 6)
+      return showModal({
+        title: t("member:join.modal.inputError"),
+        message: t("member:join.pw.tooShort"),
         type: "warning",
       });
 
@@ -334,13 +323,11 @@ export default function Join() {
 
   return (
     <div className="min-h-screen px-4 py-16 text-[var(--text)]">
-      {/* background */}
       <div className="fixed inset-0 -z-10 bg-[var(--bg)]" />
       <div className="fixed inset-0 -z-10 opacity-70 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.25),transparent_55%),radial-gradient(circle_at_70%_30%,rgba(16,185,129,0.12),transparent_55%),radial-gradient(circle_at_40%_80%,rgba(124,58,237,0.18),transparent_60%)]" />
 
       <div className="mx-auto w-full max-w-2xl">
         <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-8 sm:p-12 shadow-[0_18px_40px_rgba(6,12,26,0.45)]">
-          {/* ✅ 홈으로 돌아가기 버튼 (기능/디자인 기존 톤 유지) */}
           <div className="mb-6 flex items-center justify-between">
             <button
               type="button"
@@ -356,12 +343,7 @@ export default function Join() {
           <div className="text-center mb-10">
             <div className="mx-auto mb-5 h-16 w-16 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] flex items-center justify-center">
               <div className="h-10 w-10 rounded-2xl bg-[var(--accent)]/20 ring-1 ring-[var(--accent)]/30 flex items-center justify-center">
-                <svg
-                  className="h-6 w-6 text-[var(--accent)]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-6 w-6 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -375,14 +357,11 @@ export default function Join() {
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
               {t("member:join.title")}
             </h1>
-            <p className="mt-3 text-sm text-[var(--muted)]">
-              {t("member:join.subtitle")}
-            </p>
+            <p className="mt-3 text-sm text-[var(--muted)]">{t("member:join.subtitle")}</p>
           </div>
 
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* loginId */}
               <div className="md:col-span-2">
                 <label className={labelCls}>{t("member:join.field.loginId")}</label>
                 <input
@@ -393,12 +372,9 @@ export default function Join() {
                   onChange={onChange}
                   onBlur={handleLoginIdBlur}
                 />
-                {loginIdMsg.text && (
-                  <p className={cn(helperCls, loginIdMsg.color)}>{loginIdMsg.text}</p>
-                )}
+                {loginIdMsg.text && <p className={cn(helperCls, loginIdMsg.color)}>{loginIdMsg.text}</p>}
               </div>
 
-              {/* pw */}
               <div>
                 <label className={labelCls}>{t("member:join.field.password")}</label>
                 <input
@@ -411,7 +387,6 @@ export default function Join() {
                 />
               </div>
 
-              {/* pw2 */}
               <div>
                 <label className={labelCls}>{t("member:join.field.password2")}</label>
                 <input
@@ -428,7 +403,6 @@ export default function Join() {
                 <p className={cn("md:col-span-2 -mt-2", helperCls, pwMsg.color)}>{pwMsg.text}</p>
               )}
 
-              {/* name */}
               <div>
                 <label className={labelCls}>{t("member:join.field.name")}</label>
                 <input
@@ -440,7 +414,6 @@ export default function Join() {
                 />
               </div>
 
-              {/* nickname */}
               <div>
                 <label className={labelCls}>{t("member:join.field.nickname")}</label>
                 <input
@@ -451,12 +424,9 @@ export default function Join() {
                   onChange={onChange}
                   onBlur={handleNicknameBlur}
                 />
-                {nicknameMsg.text && (
-                  <p className={cn(helperCls, nicknameMsg.color)}>{nicknameMsg.text}</p>
-                )}
+                {nicknameMsg.text && <p className={cn(helperCls, nicknameMsg.color)}>{nicknameMsg.text}</p>}
               </div>
 
-              {/* email verify */}
               <div className="md:col-span-2 space-y-3">
                 <label className={labelCls}>{t("member:join.field.emailVerify")}</label>
 
@@ -499,12 +469,9 @@ export default function Join() {
                   </div>
                 )}
 
-                {emailMsg.text && (
-                  <p className={cn("ml-2 text-xs font-semibold", emailMsg.color)}>{emailMsg.text}</p>
-                )}
+                {emailMsg.text && <p className={cn("ml-2 text-xs font-semibold", emailMsg.color)}>{emailMsg.text}</p>}
               </div>
 
-              {/* country */}
               <div className="md:col-span-2">
                 <label className={labelCls}>{t("member:join.field.country")}</label>
                 <select
@@ -520,16 +487,13 @@ export default function Join() {
                   <option value="">{t("member:join.placeholder.country")}</option>
                   {countries.map((country) => (
                     <option key={country.id} value={country.id}>
-                      {t(`member:country.${country.id}`, {
-                        defaultValue: country.countryName,
-                      })}
+                      {t(`member:country.${country.id}`, { defaultValue: country.countryName })}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* submit */}
             <div className="pt-2">
               <button
                 type="button"
@@ -541,14 +505,10 @@ export default function Join() {
               </button>
             </div>
 
-            {/* footer */}
             <div className="text-center">
               <p className="text-sm text-[var(--muted)]">
                 {t("member:join.hint.already")}{" "}
-                <Link
-                  to="/login"
-                  className="ml-1 text-[var(--accent)] hover:text-white transition-colors"
-                >
+                <Link to="/login" className="ml-1 text-[var(--accent)] hover:text-white transition-colors">
                   {t("member:join.hint.loginLink")}
                 </Link>
               </p>
@@ -556,10 +516,7 @@ export default function Join() {
           </div>
         </div>
 
-        {/* tiny helper */}
-        <p className="mt-6 text-center text-xs text-[var(--muted)]">
-          Gesture OS Manager · Join
-        </p>
+        <p className="mt-6 text-center text-xs text-[var(--muted)]">Gesture OS Manager · Join</p>
       </div>
     </div>
   );
