@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { useModal } from "../../context/ModalContext";
@@ -30,7 +30,6 @@ export default function Join() {
   const [nicknameMsg, setNicknameMsg] = useState({ text: "", color: "" });
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
 
-  // ✅ 비번 메시지: 6자리 미만 경고 + 일치/불일치
   const [pwMsg, setPwMsg] = useState({ text: "", color: "" });
 
   const [loading, setLoading] = useState(false);
@@ -48,14 +47,12 @@ export default function Join() {
       .catch((e) => console.error("Failed to fetch countries", e));
   }, []);
 
-  // ✅ 비밀번호 helper (6자리 미만이면 경고 우선)
   const computePwMsg = (pw, pw2) => {
     const a = (pw ?? "").trim();
     const b = (pw2 ?? "").trim();
 
     if (!a && !b) return { text: "", color: "" };
 
-    // 1) 길이 경고가 최우선
     if (a && a.length > 0 && a.length < 6) {
       return {
         text: t("member:join.pw.tooShort"),
@@ -63,7 +60,6 @@ export default function Join() {
       };
     }
 
-    // 2) 길이 OK일 때만 일치/불일치 판단
     if (a && b) {
       if (a === b) return { text: t("member:join.pw.match"), color: "text-emerald-400" };
       return { text: t("member:join.pw.mismatch"), color: "text-rose-400" };
@@ -207,82 +203,37 @@ export default function Join() {
 
   const submit = async () => {
     if (!form.loginId.trim())
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.loginId"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.loginId"), type: "warning" });
 
     if (!isLoginIdChecked)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.loginIdCheck"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.loginIdCheck"), type: "warning" });
 
     if (!form.loginPw.trim())
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.password"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.password"), type: "warning" });
 
-    // ✅ 6자리 이상 프론트에서도 즉시 차단
     if (form.loginPw.trim().length < 6)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.pw.tooShort"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.pw.tooShort"), type: "warning" });
 
     if (form.loginPw !== form.loginPw2)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.passwordMismatch"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.passwordMismatch"), type: "warning" });
 
     if (!form.name.trim())
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.name"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.name"), type: "warning" });
 
     if (!form.email.trim())
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.email"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.email"), type: "warning" });
 
     if (!isEmailVerified)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.emailVerify"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.emailVerify"), type: "warning" });
 
     if (!form.nickname.trim())
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.nickname"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.nickname"), type: "warning" });
 
     if (!isNicknameChecked)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.nicknameCheck"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.nicknameCheck"), type: "warning" });
 
     if (!form.countryId)
-      return showModal({
-        title: t("member:join.modal.inputError"),
-        message: t("member:join.modal.need.country"),
-        type: "warning",
-      });
+      return showModal({ title: t("member:join.modal.inputError"), message: t("member:join.modal.need.country"), type: "warning" });
 
     setLoading(true);
 
@@ -313,7 +264,6 @@ export default function Join() {
     }
   };
 
-  // ✅ 글자색만 라이트에서도 잘 보이게 var(--text)로 교체
   const inputCls =
     "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3 text-sm text-[color:var(--text)] " +
     "placeholder:text-[var(--muted)] outline-none transition-all " +
@@ -345,17 +295,11 @@ export default function Join() {
             <div className="mx-auto mb-5 h-16 w-16 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] flex items-center justify-center">
               <div className="h-10 w-10 rounded-2xl bg-[var(--accent)]/20 ring-1 ring-[var(--accent)]/30 flex items-center justify-center">
                 <svg className="h-6 w-6 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
               </div>
             </div>
 
-            {/* ✅ title 흰색 제거 → var 토큰 */}
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[color:var(--text-strong)]">
               {t("member:join.title")}
             </h1>
@@ -480,7 +424,6 @@ export default function Join() {
                   className={cn(
                     inputCls,
                     "appearance-none",
-                    // ✅ 선택 전에는 muted, 선택 후에는 text로 (흰색 제거)
                     form.countryId ? "text-[color:var(--text)]" : "text-[var(--muted)]"
                   )}
                   name="countryId"

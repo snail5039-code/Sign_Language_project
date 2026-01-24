@@ -430,6 +430,55 @@ public class MemberService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다.");
         }
     }
+    
+    public String updateProfileImage(int memberId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일이 비어있음");
+        }
+        if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미지 파일만 업로드 가능");
+        }
+        long maxBytes = 3L * 1024 * 1024;
+        if (file.getSize() > maxBytes) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "3MB 이하만 업로드 가능");
+        }
+
+        try {
+            Path baseDir = Paths.get("uploads", "profile", String.valueOf(memberId))
+                    .toAbsolutePath()
+                    .normalize();
+            Files.createDirectories(baseDir);
+
+            String original = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+            String ext = "";
+            int dot = original.lastIndexOf(".");
+            if (dot >= 0) ext = original.substring(dot).toLowerCase();
+
+            if (ext.isBlank()) {
+                String ct = file.getContentType();
+                if ("image/png".equals(ct)) ext = ".png";
+                else if ("image/jpeg".equals(ct)) ext = ".jpg";
+                else if ("image/webp".equals(ct)) ext = ".webp";
+                else ext = ".png";
+            }
+
+            String filename = UUID.randomUUID().toString().replace("-", "") + ext;
+            Path target = baseDir.resolve(filename);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+            // ✅ 서빙 URL (상대경로)
+            String url = "/uploads/profile/" + memberId + "/" + filename;
+
+            // ✅ DB 업데이트 (서비스 → DAO)
+            memberDao.updateProfileImageUrl(memberId, url);
+
+            return url;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "업로드 실패");
+        }
+    }
+}
 
     public String updateProfileImage(int memberId, MultipartFile file) {
         if (file == null || file.isEmpty()) {

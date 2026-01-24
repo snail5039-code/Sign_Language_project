@@ -34,12 +34,36 @@ function resolveProfileSrc(rawUrl, bust = "") {
   return `${full}${sep}v=${encodeURIComponent(bust)}`;
 }
 
+import defaultAvatar from "../../assets/default-avatar.png";
+
+// ✅ 백엔드 오리진(이미지 파일 요청용)
+// .env에 VITE_API_ORIGIN=http://localhost:8082 넣어두면 더 좋음
+const API_ORIGIN = import.meta?.env?.VITE_API_ORIGIN || "http://localhost:8082";
+
+/**
+ * member.profileImageUrl 이
+ * - "" / null -> default
+ * - "/uploads/..." -> API_ORIGIN 붙여서
+ * - "http..." -> 그대로
+ */
+function resolveProfileSrc(rawUrl, bust = "") {
+  if (!rawUrl) return defaultAvatar;
+
+  const isAbsolute = /^https?:\/\//i.test(rawUrl);
+  const full = isAbsolute ? rawUrl : `${API_ORIGIN}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+
+  // 캐시 방지(선택): bust가 있으면 쿼리 붙임
+  if (!bust) return full;
+  const sep = full.includes("?") ? "&" : "?";
+  return `${full}${sep}v=${encodeURIComponent(bust)}`;
+}
+
 export default function MyPage() {
   // ✅ common 제거 (defaultValue도 제거할 거라 common 키 안 씀)
   const { t } = useTranslation(["member"]);
   const { logout, isAuthed, loading: authLoading } = useAuth();
   const { showModal } = useModal();
-  const nav = useNavigate();
+  const nav = useNavigate(); 
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -526,6 +550,15 @@ export default function MyPage() {
   if (!isAuthed || !data) return null;
 
   const { member, stats, myArticles, myComments, likedArticles } = data;
+
+  // ✅ 화면 표시용 프로필 이미지:
+  // 1) 편집중이고 선택한 파일 있으면 preview
+  // 2) 아니면 member.profileImageUrl(백엔드 오리진 붙임)
+  // 3) 없으면 기본
+  const displayProfileSrc = useMemo(() => {
+    if (profilePreview) return profilePreview;
+    return resolveProfileSrc(member.profileImageUrl, profileBust);
+  }, [profilePreview, member.profileImageUrl, profileBust]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] py-12 px-6 text-[color:var(--text)]">

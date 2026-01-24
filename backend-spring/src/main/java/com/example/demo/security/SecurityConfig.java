@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico").permitAll()
 
+
                         // ✅ auth 관련: 필요한 것만 permitAll
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()

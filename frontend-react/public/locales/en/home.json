@@ -88,7 +88,46 @@
     "desc": "Real-time status and execution controls live in the desktop app. The web focuses on guidance and management.",
     "box": "If you want, we can add images/diagrams to the About page for deeper explanations."
   },
-
+  "highlights": {
+    "title": "Key points on Home",
+    "desc": "We removed exe-only info (like live snapshots) and kept only what matters on the web side.",
+    "items": [
+      {
+        "title": "First impression",
+        "desc": "Understand the project at a glance."
+      },
+      {
+        "title": "Guide-first",
+        "desc": "New users can adapt quickly via Motion Guide."
+      },
+      {
+        "title": "Clean structure",
+        "desc": "Not too many sections—just the essentials."
+      },
+      {
+        "title": "Smooth reveal",
+        "desc": "Scroll reveal for a natural, modern feel."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Home should feel like a real homepage",
+    "desc": "We added slides and scroll-reveal for a richer first screen, while removing unnecessary content.",
+    "chips": [
+      "Simple but premium",
+      "Remove noise",
+      "Scroll effects",
+      "Only essentials"
+    ]
+  },
+  "note": {
+    "title": "Note",
+    "desc": "Home is for overview. Real-time status / execution controls belong to the exe side.",
+    "box": "If you want, we can also enhance the About page with visuals/diagrams."
+  },
+  
+  "systemOverview": "System Overview",
+  "title": "Gesture OS Manager",
   "recentUpdates": {
     "title": "Recent Updates",
     "badge": "Latest",

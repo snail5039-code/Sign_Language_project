@@ -89,6 +89,8 @@
     "box": "必要なら「紹介」ページに画像/図表を追加して、より詳しく説明できます。"
   },
 
+  "systemOverview": "システム概要",
+  "title": "Gesture OS Manager",
   "recentUpdates": {
     "title": "最近の更新",
     "badge": "Latest",
@@ -98,4 +100,5 @@
       "ログインページのデザインを刷新しました。"
     ]
   }
+
 }
