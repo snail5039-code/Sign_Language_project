@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// ✅ 배너 이미지 추가 (경로 맞춰)
+import heroBanner from "../assets/hero-banner.png";
+
 function cn(...xs) {
   return xs.filter(Boolean).join(" ");
 }
@@ -45,6 +48,29 @@ function Reveal({ children, className = "" }) {
   );
 }
 
+function detectTheme() {
+  const root = document.documentElement;
+
+  // 1) data-theme 우선
+  const dt = root.getAttribute("data-theme");
+  if (dt === "dark" || dt === "light") return dt;
+
+  // 2) class 기반일 수도 있음
+  if (root.classList.contains("dark")) return "dark";
+  if (root.classList.contains("light")) return "light";
+
+  // 3) localStorage 흔한 키들 체크
+  const ls =
+    localStorage.getItem("theme") ||
+    localStorage.getItem("THEME") ||
+    localStorage.getItem("app_theme") ||
+    localStorage.getItem("gestureos_theme");
+  if (ls === "dark" || ls === "light") return ls;
+
+  // 4) 마지막 fallback: OS 설정
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function Home() {
   const { t } = useTranslation("home");
 
@@ -87,6 +113,77 @@ export default function Home() {
   );
 
   const [slideIdx, setSlideIdx] = useState(0);
+
+  // ✅ HERO용 테마 튜닝 값 (전역 토큰 건드리지 않고 "여기서만" 제어)
+  const [heroVars, setHeroVars] = useState(() => {
+    const th = typeof window !== "undefined" ? detectTheme() : "dark";
+    return th === "dark"
+      ? {
+          "--hero-img-opacity": 0.34, // 다크에서 이미지 더 보이게
+          "--hero-img-scale": 1.02,   // 과한 확대 줄여서 "잘림" 완화
+          "--hero-img-filter": "saturate(1.10) contrast(1.08)",
+          // 왼쪽 가독성 확보(너무 새까맣지 않게)
+          "--hero-scrim-0": "rgba(7, 12, 24, 0.46)",
+          "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
+          "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
+          // 오른쪽에 손이 있으니까 조금 더 오른쪽을 보여주기
+          "--hero-object-pos": "72% 50%",
+        }
+      : {
+          "--hero-img-opacity": 0.22,
+          "--hero-img-scale": 1.01,
+          "--hero-img-filter": "saturate(1.05) contrast(1.05)",
+          "--hero-scrim-0": "rgba(255, 255, 255, 0.64)",
+          "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
+          "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
+          "--hero-object-pos": "78% 50%",
+        };
+  });
+
+  // 테마 변경 감지 (data-theme / class 변경될 때 자동 반영)
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const apply = () => {
+      const th = detectTheme();
+      setHeroVars(
+        th === "dark"
+          ? {
+              "--hero-img-opacity": 0.34,
+              "--hero-img-scale": 1.02,
+              "--hero-img-filter": "saturate(1.10) contrast(1.08)",
+              "--hero-scrim-0": "rgba(7, 12, 24, 0.46)",
+              "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
+              "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
+              "--hero-object-pos": "72% 50%",
+            }
+          : {
+              "--hero-img-opacity": 0.22,
+              "--hero-img-scale": 1.01,
+              "--hero-img-filter": "saturate(1.05) contrast(1.05)",
+              "--hero-scrim-0": "rgba(255, 255, 255, 0.64)",
+              "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
+              "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
+              "--hero-object-pos": "78% 50%",
+            }
+      );
+    };
+
+    apply();
+
+    const mo = new MutationObserver(() => apply());
+    mo.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+    // OS 다크모드 변경도 반영(원하면)
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const onMq = () => apply();
+    mq?.addEventListener?.("change", onMq);
+
+    return () => {
+      mo.disconnect();
+      mq?.removeEventListener?.("change", onMq);
+    };
+  }, []);
 
   // 자동 슬라이드 (홈 UI만, 기능 로직X)
   useEffect(() => {
@@ -144,15 +241,42 @@ export default function Home() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-sm text-[var(--muted)]">{t("systemOverview")}</div>
-          <h1 className="text-3xl tracking-tight text-white">{t("title")}</h1>
+          {/* ✅ text-white -> var(--text) */}
+          <h1 className="text-3xl tracking-tight text-[color:var(--text)]">{t("title")}</h1>
         </div>
       </header>
 
       {/* HERO (슬라이드) */}
       <Reveal>
-        <section className="relative overflow-hidden rounded-[2.25rem] border border-[var(--border)] bg-[var(--surface)]">
-          {/* glow bg */}
-          <div className="pointer-events-none absolute inset-0 opacity-75 [background:radial-gradient(circle_at_25%_20%,rgba(59,130,246,0.22),transparent_55%),radial-gradient(circle_at_80%_30%,rgba(124,58,237,0.16),transparent_60%),radial-gradient(circle_at_55%_85%,rgba(16,185,129,0.10),transparent_62%)]" />
+        <section
+          className="relative overflow-hidden rounded-[2.25rem] border border-[var(--border)] bg-[var(--surface)]"
+          style={heroVars} // ✅ 전역 토큰 건드리지 않고 HERO 내부에서만 제어
+        >
+          {/* ✅ 배너 이미지 */}
+          <img
+            src={heroBanner}
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            style={{
+              opacity: "var(--hero-img-opacity)",
+              filter: "var(--hero-img-filter)",
+              transform: "scale(var(--hero-img-scale))",
+              objectPosition: "var(--hero-object-pos)",
+            }}
+            draggable={false}
+          />
+
+          {/* ✅ 가독성 스크림 */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg,var(--hero-scrim-0),var(--hero-scrim-1),var(--hero-scrim-2))",
+            }}
+          />
+
+          {/* glow bg (기존 유지) */}
+          <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_25%_20%,rgba(59,130,246,0.22),transparent_55%),radial-gradient(circle_at_80%_30%,rgba(124,58,237,0.16),transparent_60%),radial-gradient(circle_at_55%_85%,rgba(16,185,129,0.10),transparent_62%)]" />
 
           <div className="relative p-7 sm:p-10">
             <div className="flex flex-wrap items-start justify-between gap-6">
@@ -163,22 +287,22 @@ export default function Home() {
                   {cur.eyebrow}
                 </div>
 
-                <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                {/* ✅ text-white -> var(--text) */}
+                <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-[color:var(--text)]">
                   {cur.title}
                 </h2>
+
                 <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">{cur.desc}</p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  {[t("hero.pills.0"), t("hero.pills.1"), t("hero.pills.2"), t("hero.pills.3")].map(
-                    (x, i) => (
-                      <span
-                        key={i}
-                        className="rounded-full border border-[var(--border)] bg-[rgba(6,12,26,0.20)] px-3 py-1 text-xs text-white/85"
-                      >
-                        {x}
-                      </span>
-                    )
-                  )}
+                  {[t("hero.pills.0"), t("hero.pills.1"), t("hero.pills.2"), t("hero.pills.3")].map((x, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full border border-[var(--border)] bg-[rgba(6,12,26,0.20)] px-3 py-1 text-xs text-[color:var(--text)]/85"
+                    >
+                      {x}
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -187,7 +311,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setSlideIdx((v) => (v - 1 + slides.length) % slides.length)}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-white hover:border-[var(--accent)]/45 transition-colors"
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] hover:border-[var(--accent)]/45 transition-colors"
                 >
                   {t("hero.controls.prev")}
                 </button>
@@ -228,7 +352,8 @@ export default function Home() {
       <Reveal>
         <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7">
           <div className="flex items-end justify-between gap-3">
-            <h3 className="text-sm font-semibold text-white">{t("features.title")}</h3>
+            {/* ✅ text-white -> var(--text) */}
+            <h3 className="text-sm font-semibold text-[color:var(--text)]">{t("features.title")}</h3>
             <div className="text-xs text-[var(--muted)]">{t("features.badge")}</div>
           </div>
 
@@ -241,7 +366,9 @@ export default function Home() {
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent)]/12 ring-1 ring-[var(--accent)]/18">
                   <Icon name={f.icon} />
                 </div>
-                <div className="text-sm font-extrabold text-white">{f.title}</div>
+
+                {/* ✅ text-white -> var(--text) */}
+                <div className="text-sm font-extrabold text-[color:var(--text)]">{f.title}</div>
                 <div className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{f.desc}</div>
               </div>
             ))}
@@ -254,7 +381,8 @@ export default function Home() {
         <section className="space-y-6">
           <Reveal>
             <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7">
-              <h3 className="text-sm font-semibold text-white">{t("highlights.title")}</h3>
+              {/* ✅ text-white -> var(--text) */}
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">{t("highlights.title")}</h3>
               <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{t("highlights.desc")}</p>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -268,7 +396,8 @@ export default function Home() {
                     key={i}
                     className="rounded-2xl border border-[var(--border)] bg-[rgba(6,12,26,0.18)] p-5"
                   >
-                    <div className="text-sm font-extrabold text-white">{x.t}</div>
+                    {/* ✅ text-white -> var(--text) */}
+                    <div className="text-sm font-extrabold text-[color:var(--text)]">{x.t}</div>
                     <div className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{x.d}</div>
                   </div>
                 ))}
@@ -278,20 +407,19 @@ export default function Home() {
 
           <Reveal>
             <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7">
-              <h3 className="text-sm font-semibold text-white">{t("cta.title")}</h3>
+              {/* ✅ text-white -> var(--text) */}
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">{t("cta.title")}</h3>
               <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{t("cta.desc")}</p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {[t("cta.chips.0"), t("cta.chips.1"), t("cta.chips.2"), t("cta.chips.3")].map(
-                  (x, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-white/85"
-                    >
-                      {x}
-                    </span>
-                  )
-                )}
+                {[t("cta.chips.0"), t("cta.chips.1"), t("cta.chips.2"), t("cta.chips.3")].map((x, i) => (
+                  <span
+                    key={i}
+                    className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[color:var(--text)]/85"
+                  >
+                    {x}
+                  </span>
+                ))}
               </div>
             </div>
           </Reveal>
@@ -302,7 +430,8 @@ export default function Home() {
           <Reveal>
             <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7">
               <div className="flex items-end justify-between gap-3">
-                <h3 className="text-sm font-semibold text-white">{t("recentUpdates.title")}</h3>
+                {/* ✅ text-white -> var(--text) */}
+                <h3 className="text-sm font-semibold text-[color:var(--text)]">{t("recentUpdates.title")}</h3>
                 <div className="text-xs text-[var(--muted)]">{t("recentUpdates.badge")}</div>
               </div>
 
@@ -319,7 +448,8 @@ export default function Home() {
 
           <Reveal>
             <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7">
-              <h3 className="text-sm font-semibold text-white">{t("note.title")}</h3>
+              {/* ✅ text-white -> var(--text) */}
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">{t("note.title")}</h3>
               <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{t("note.desc")}</p>
 
               <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-5 text-xs text-[var(--muted)]">

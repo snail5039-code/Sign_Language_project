@@ -1,140 +1,143 @@
 package com.example.demo.dao;
 
 import java.util.List;
-
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
-
+import org.apache.ibatis.annotations.*;
 import com.example.demo.dto.Country;
 import com.example.demo.dto.Member;
 
 @Mapper
 public interface MemberDao {
 
-        // 1. 일반 회원가입 (기존 유지)
-        @Insert("""
-                            insert into member(regdate, updatedate, loginid, loginpw, name, email, countryid, nickname, nicknameUpdatedAt)
-                            values (now(), now(), #{loginId}, #{loginPw}, #{name}, #{email}, #{countryId}, #{nickname}, now())
-                        """)
-        void join(Member member);
+    // 1. 일반 회원가입
+    @Insert("""
+        INSERT INTO member(regdate, updatedate, loginid, loginpw, name, email, countryid, nickname, nicknameupdatedat)
+        VALUES (NOW(), NOW(), #{loginId}, #{loginPw}, #{name}, #{email}, #{countryId}, #{nickname}, NOW())
+    """)
+    void join(Member member);
 
-        // 2. 서비스의 upsertSocialUser에서 사용하는 조회 로직 (필수)
-        @Select("""
-                            select *
-                            from member
-                            where provider = #{provider}
-                              and provider_key = #{providerKey}
-                        """)
-        Member findByProviderAndKey(@Param("provider") String provider, @Param("providerKey") String providerKey);
+    // 2. 소셜 사용자 조회
+    @Select("""
+        SELECT *
+        FROM member
+        WHERE provider = #{provider}
+          AND provider_key = #{providerKey}
+    """)
+    Member findByProviderAndKey(@Param("provider") String provider, @Param("providerKey") String providerKey);
 
-        // 3. 서비스의 upsertSocialUser에서 사용하는 저장 로직 (필수)
-        // @Options는 DB에서 생성된 id값을 다시 Member 객체에 채워주기 위해 꼭 필요합니다.
-        @Options(useGeneratedKeys = true, keyProperty = "id")
-        @Insert("""
-                            insert into member(regdate, updatedate, loginid, loginpw, name, email, countryid, provider, provider_key, nickname, nicknameUpdatedAt)
-                            values (now(), now(), #{loginId}, #{loginPw}, #{name}, #{email}, #{countryId}, #{provider}, #{providerKey}, #{nickname}, now())
-                        """)
-        void insertSocial(Member member);
+    // 3. 소셜 사용자 insert (ID 자동 생성 옵션 포함)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("""
+        INSERT INTO member(regdate, updatedate, loginid, loginpw, name, email, countryid, provider, provider_key, nickname, nicknameupdatedat)
+        VALUES (NOW(), NOW(), #{loginId}, #{loginPw}, #{name}, #{email}, #{countryId}, #{provider}, #{providerKey}, #{nickname}, NOW())
+    """)
+    void insertSocial(Member member);
 
-        // 4. 기존에 있던 이메일 조회 로직 (유지)
-        @Select("""
-                            select *
-                            from member
-                            where email = #{email}
-                        """)
-        Member findByEmail(@Param("email") String email);
+    // 4. 이메일 조회
+    @Select("""
+        SELECT *
+        FROM member
+        WHERE email = #{email}
+    """)
+    Member findByEmail(@Param("email") String email);
 
-        // 5. 기존에 있던 로그인아이디 조회 로직 (유지)
-        @Select("""
-                            select *
-                            from member
-                            where loginid = #{loginId}
-                        """)
-        Member findByLoginId(String loginId);
+    // 5. 로그인아이디 조회
+    @Select("""
+        SELECT *
+        FROM member
+        WHERE loginid = #{loginId}
+    """)
+    Member findByLoginId(String loginId);
 
-        // 6. ID로 회원 찾기 (유지)
-        @Select("""
-                            SELECT *
-                            FROM member
-                            WHERE id = #{id}
-                        """)
-        Member findById(Integer id);
+    // 6. ID로 조회
+    @Select("""
+        SELECT *
+        FROM member
+        WHERE id = #{id}
+    """)
+    Member findById(Integer id);
 
-        // 7. 국가 목록 (유지)
-        @Select("""
-                            SELECT *
-                            FROM country
-                            order by id asc
-                        """)
-        List<Country> countries();
+    // 7. 국가 목록
+    @Select("""
+        SELECT *
+        FROM country
+        ORDER BY id ASC
+    """)
+    List<Country> countries();
 
-        // 8. 아이디 찾기 (이름 + 이메일)
-        @Select("""
-                            SELECT loginid
-                            FROM member
-                            WHERE name = #{name} AND email = #{email}
-                        """)
-        String findLoginIdByNameAndEmail(@Param("name") String name, @Param("email") String email);
+    // 8. 아이디 찾기
+    @Select("""
+        SELECT loginid
+        FROM member
+        WHERE name = #{name}
+          AND email = #{email}
+    """)
+    String findLoginIdByNameAndEmail(@Param("name") String name, @Param("email") String email);
 
-        // 9. 비밀번호 찾기 검증용 (아이디 + 이메일로 회원 조회)
-        @Select("""
-                            SELECT *
-                            FROM member
-                            WHERE loginid = #{loginId} AND email = #{email}
-                        """)
-        Member findByLoginIdAndEmail(@Param("loginId") String loginId, @Param("email") String email);
+    // 9. 비밀번호 찾기 검증용
+    @Select("""
+        SELECT *
+        FROM member
+        WHERE loginid = #{loginId}
+          AND email = #{email}
+    """)
+    Member findByLoginIdAndEmail(@Param("loginId") String loginId, @Param("email") String email);
 
-        // 10. 비밀번호 재설정 (임시 비밀번호 발급용)
-        @org.apache.ibatis.annotations.Update("""
-                            UPDATE member
-                            SET loginpw = #{tempPw}, updatedate = NOW()
-                            WHERE id = #{id}
-                        """)
-        void updatePassword(@Param("id") Integer id, @Param("tempPw") String tempPw);
+    // 10. 비밀번호 재설정
+    @Update("""
+        UPDATE member
+        SET loginpw = #{tempPw},
+            updatedate = NOW()
+        WHERE id = #{id}
+    """)
+    void updatePassword(@Param("id") Integer id, @Param("tempPw") String tempPw);
 
-        @Update("""
-                        	update member
-                        	set loginPw = #{member.loginPw}
-                        		, updateDate = now()
-                        		, name = #{member.name}
-                        		, email = #{member.email}
-                        		, countryId = #{member.countryId}
-                        		, nickname = #{member.nickname}
-                        		, nicknameUpdatedAt = #{member.nicknameUpdatedAt}::timestamp
-                        		, profile_image_url = #{member.profileImageUrl}
-                        	where id = #{id}
-                        """)
-        void memberModify(@Param("member") Member member, @Param("id") int id);
+    // 11. 회원 정보 수정 (test3의 고도화된 로직 채택)
+    // 값이 넘어온 경우에만 수정하고, null이나 빈 문자열은 기존 값을 유지합니다.
+    @Update("""
+        UPDATE member
+        SET
+            loginpw = COALESCE(NULLIF(#{member.loginPw}, ''), loginpw),
+            updatedate = NOW(),
+            name = COALESCE(NULLIF(#{member.name}, ''), name),
+            email = COALESCE(NULLIF(#{member.email}, ''), email),
+            countryid = COALESCE(#{member.countryId}, countryid),
+            nickname = COALESCE(NULLIF(#{member.nickname}, ''), nickname),
+            nicknameupdatedat = COALESCE(NULLIF(#{member.nicknameUpdatedAt}, '')::timestamp, nicknameupdatedat),
+            profile_image_url = CASE
+                WHEN #{member.resetProfileImage} = true THEN NULL
+                ELSE COALESCE(NULLIF(#{member.profileImageUrl}, ''), profile_image_url)
+            END
+        WHERE id = #{id}
+    """)
+    void memberModify(@Param("member") Member member, @Param("id") int id);
 
-        @Delete("""
-                        delete from member
-                        where id = #{id}
-                        """)
-        void memberDelete(int id);
+    // 12. 회원 탈퇴
+    @Delete("""
+        DELETE FROM member
+        WHERE id = #{id}
+    """)
+    void memberDelete(int id);
 
-        @Select("""
-                            SELECT COUNT(*) > 0
-                            FROM member
-                            WHERE nickname = #{nickname}
-                        """)
-        boolean existsByNickname(String nickname);
+    // 13. 중복 체크 로직들
+    @Select("""
+        SELECT COUNT(*) > 0
+        FROM member
+        WHERE nickname = #{nickname}
+    """)
+    boolean existsByNickname(String nickname);
 
-        @Select("""
-                            SELECT COUNT(*) > 0
-                            FROM member
-                            WHERE loginid = #{loginId}
-                        """)
-        boolean existsByLoginId(String loginId);
+    @Select("""
+        SELECT COUNT(*) > 0
+        FROM member
+        WHERE loginid = #{loginId}
+    """)
+    boolean existsByLoginId(String loginId);
 
-        @Update("""
-        		UPDATE member
-        		    SET profile_image_url = #{url}
-        		    WHERE id = #{memberId}
-        		""")
-		void updateProfileImageUrl(int memberId, String url);
+    // 14. 프로필 이미지 별도 업데이트
+    @Update("""
+        UPDATE member
+        SET profile_image_url = #{url}
+        WHERE id = #{memberId}
+    """)
+    void updateProfileImageUrl(@Param("memberId") int memberId, @Param("url") String url);
 }
