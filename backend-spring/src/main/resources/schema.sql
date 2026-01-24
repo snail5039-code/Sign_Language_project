@@ -94,4 +94,7 @@ CREATE TABLE IF NOT EXISTS email_verification (
 CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification(email);
 
 
+ALTER TABLE member
+ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(500);
+
 
