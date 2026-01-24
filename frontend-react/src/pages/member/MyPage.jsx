@@ -1,9 +1,38 @@
-﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
 import { useModal } from "../../context/ModalContext";
 import { useTranslation } from "react-i18next";
+import { formatDateTimeMinute } from "../../utils/datetime";
+import FilePicker from "../../components/common/FilePicker";
+
+import defaultAvatar from "../../assets/default-avatar.png";
+
+// ✅ 서버 오리진 (Vite 기준)
+const API_ORIGIN =
+  import.meta.env?.VITE_API_ORIGIN ||
+  import.meta.env?.VITE_API_URL ||
+  window.location.origin;
+
+/**
+ * member.profileImageUrl 이
+ * - "" / null -> default
+ * - "/uploads/..." -> API_ORIGIN 붙여서
+ * - "http..." -> 그대로
+ */
+function resolveProfileSrc(rawUrl, bust = "") {
+  if (!rawUrl) return defaultAvatar;
+
+  const isAbsolute = /^https?:\/\//i.test(rawUrl);
+  const normalized = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  const full = isAbsolute ? rawUrl : `${API_ORIGIN}${normalized}`;
+
+  if (!bust) return full;
+
+  const sep = full.includes("?") ? "&" : "?";
+  return `${full}${sep}v=${encodeURIComponent(bust)}`;
+}
 
 import defaultAvatar from "../../assets/default-avatar.png";
 
@@ -30,7 +59,8 @@ function resolveProfileSrc(rawUrl, bust = "") {
 }
 
 export default function MyPage() {
-  const { t } = useTranslation("member");
+  // ✅ common 제거 (defaultValue도 제거할 거라 common 키 안 씀)
+  const { t } = useTranslation(["member"]);
   const { logout, isAuthed, loading: authLoading } = useAuth();
   const { showModal } = useModal();
   const nav = useNavigate(); 
@@ -64,8 +94,14 @@ export default function MyPage() {
   const [profileFile, setProfileFile] = useState(null);
   const [profilePreview, setProfilePreview] = useState("");
 
-  // ✅ 저장 직후 캐시 때문에 안 바뀌는 것처럼 보이는 거 방지용
+  // ✅ 기본 이미지로 되돌리기 플래그
+  const [revertToDefault, setRevertToDefault] = useState(false);
+
+  // ✅ 저장 직후 캐시 방지용
   const [profileBust, setProfileBust] = useState(String(Date.now()));
+
+  // revoke용 ref (렌더 타이밍 꼬임 방지)
+  const previewRef = useRef("");
 
   useEffect(() => {
     if (!authLoading && !isAuthed) nav("/login");
@@ -89,8 +125,8 @@ export default function MyPage() {
       // 세션만료로 HTML 내려오는 경우 방어
       if (typeof res.data === "string" && res.data.includes("<!DOCTYPE html>")) {
         showModal({
-          title: t("mypage.modal.sessionExpiredTitle"),
-          message: t("mypage.modal.sessionExpiredMsg"),
+          title: t("member:mypage.modal.sessionExpiredTitle"),
+          message: t("member:mypage.modal.sessionExpiredMsg"),
           type: "error",
           onClose: () => logout(),
         });
@@ -104,20 +140,21 @@ export default function MyPage() {
           loginPwConfirm: "",
           email: res.data.member.email || "",
           nickname: res.data.member.nickname || "",
-          countryId: String(res.data.member.countryId || ""),
+          countryId: String(res.data.member.countryId ?? ""),
         });
+
         setIsNicknameChecked(true);
         setIsEmailVerified(true);
+        setRevertToDefault(false);
 
-        // ✅ 서버에서 member.updateDate 같은게 오면 그걸로 bust 갱신해도 됨
-        // 없으면 그냥 현재시간으로
+        // 이미지 새로고침(캐시 방지)
         setProfileBust(String(Date.now()));
       }
     } catch (e) {
       console.error(e);
       showModal({
-        title: t("mypage.modal.loadFailTitle"),
-        message: t("mypage.modal.loadFailMsg"),
+        title: t("member:mypage.modal.loadFailTitle"),
+        message: t("member:mypage.modal.loadFailMsg"),
         type: "error",
       });
     } finally {
@@ -127,22 +164,22 @@ export default function MyPage() {
 
   const handleLinkManager = async () => {
     try {
-      const res = await api.post("/auth/bridge/start"); // 인터셉터가 Authorization 붙임
+      const res = await api.post("/auth/bridge/start");
       const { code, expiresInSec } = res.data || {};
       if (!code) throw new Error("NO_CODE");
 
       window.location.href = `gestureos://auth?code=${encodeURIComponent(code)}`;
 
       showModal({
-        title: "매니저 연동",
-        message: `연동 요청을 보냈어. (유효시간: ${expiresInSec ?? 60}초)`,
+        title: t("member:mypage.modal.linkTitle"),
+        message: t("member:mypage.modal.linkMsg", { sec: expiresInSec ?? 60 }),
         type: "success",
       });
     } catch (e) {
       console.error(e);
       showModal({
-        title: "연동 실패",
-        message: "매니저 앱이 실행 중인지(또는 설치/프로토콜 등록) 확인해줘.",
+        title: t("member:mypage.modal.linkFailTitle"),
+        message: t("member:mypage.modal.linkFailMsg"),
         type: "error",
       });
     }
@@ -161,7 +198,7 @@ export default function MyPage() {
         loginPwConfirm: "",
         email: data.member.email || "",
         nickname: data.member.nickname || "",
-        countryId: String(data.member.countryId || ""),
+        countryId: String(data.member.countryId ?? ""),
       });
       setIsNicknameChecked(true);
       setIsEmailVerified(true);
@@ -170,9 +207,11 @@ export default function MyPage() {
       setEmailMsg({ text: "", color: "" });
       setVerificationCode("");
 
-      // ✅ 사진 선택도 리셋
       setProfileFile(null);
-      if (profilePreview) URL.revokeObjectURL(profilePreview);
+      setRevertToDefault(false);
+
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = "";
       setProfilePreview("");
     }
     setIsEditing((v) => !v);
@@ -200,9 +239,9 @@ export default function MyPage() {
     if (name === "loginPw" || name === "loginPwConfirm") {
       if (newForm.loginPw || newForm.loginPwConfirm) {
         if (newForm.loginPw === newForm.loginPwConfirm) {
-          setPwMsg({ text: t("mypage.passwordMatch"), color: "text-emerald-500" });
+          setPwMsg({ text: t("member:mypage.passwordMatch"), color: "text-emerald-500" });
         } else {
-          setPwMsg({ text: t("mypage.passwordNotMatch"), color: "text-rose-500" });
+          setPwMsg({ text: t("member:mypage.passwordNotMatch"), color: "text-rose-500" });
         }
       } else {
         setPwMsg({ text: "", color: "" });
@@ -219,10 +258,10 @@ export default function MyPage() {
     try {
       const res = await api.get(`/members/checkNickname?nickname=${encodeURIComponent(nickname)}`);
       if (res.data?.result === "fail") {
-        setNicknameMsg({ text: t("mypage.nicknameDuplicate"), color: "text-rose-500" });
+        setNicknameMsg({ text: t("member:mypage.nicknameDuplicate"), color: "text-rose-500" });
         setIsNicknameChecked(false);
       } else {
-        setNicknameMsg({ text: t("mypage.nicknameAvailable"), color: "text-emerald-500" });
+        setNicknameMsg({ text: t("member:mypage.nicknameAvailable"), color: "text-emerald-500" });
         setIsNicknameChecked(true);
       }
     } catch (e) {
@@ -234,8 +273,8 @@ export default function MyPage() {
     const email = editForm.email.trim();
     if (!email) {
       showModal({
-        title: t("mypage.modal.inputErrorTitle"),
-        message: t("mypage.errors.emailRequired"),
+        title: t("member:mypage.modal.inputErrorTitle"),
+        message: t("member:mypage.errors.emailRequired"),
         type: "warning",
       });
       return;
@@ -245,16 +284,16 @@ export default function MyPage() {
     try {
       await api.post("/members/sendVerificationCode", { email });
       showModal({
-        title: t("mypage.modal.codeSentTitle"),
-        message: t("mypage.modal.codeSentMsg"),
+        title: t("member:mypage.modal.codeSentTitle"),
+        message: t("member:mypage.modal.codeSentMsg"),
         type: "success",
       });
-      setEmailMsg({ text: t("mypage.verificationSent"), color: "text-indigo-500" });
+      setEmailMsg({ text: t("member:mypage.verificationSent"), color: "text-indigo-500" });
       setIsEmailVerified(false);
     } catch (e) {
       showModal({
-        title: t("mypage.modal.sendFailTitle"),
-        message: e.response?.data?.message ?? t("mypage.errors.sendFail"),
+        title: t("member:mypage.modal.sendFailTitle"),
+        message: e.response?.data?.message ?? t("member:mypage.errors.sendFail"),
         type: "error",
       });
     } finally {
@@ -268,8 +307,8 @@ export default function MyPage() {
 
     if (!code) {
       showModal({
-        title: t("mypage.modal.inputErrorTitle"),
-        message: t("mypage.errors.codeRequired"),
+        title: t("member:mypage.modal.inputErrorTitle"),
+        message: t("member:mypage.errors.codeRequired"),
         type: "warning",
       });
       return;
@@ -279,16 +318,16 @@ export default function MyPage() {
     try {
       await api.post("/members/verifyCode", { email, code });
       showModal({
-        title: t("mypage.modal.verifiedTitle"),
-        message: t("mypage.modal.verifiedMsg"),
+        title: t("member:mypage.modal.verifiedTitle"),
+        message: t("member:mypage.modal.verifiedMsg"),
         type: "success",
       });
       setIsEmailVerified(true);
-      setEmailMsg({ text: t("mypage.emailVerified"), color: "text-emerald-500" });
+      setEmailMsg({ text: t("member:mypage.emailVerified"), color: "text-emerald-500" });
     } catch (e) {
       showModal({
-        title: t("mypage.modal.verifyFailTitle"),
-        message: e.response?.data?.message ?? t("mypage.errors.verifyFail"),
+        title: t("member:mypage.modal.verifyFailTitle"),
+        message: e.response?.data?.message ?? t("member:mypage.errors.verifyFail"),
         type: "error",
       });
     } finally {
@@ -302,33 +341,57 @@ export default function MyPage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      showModal({ title: "업로드 실패", message: "이미지 파일만 가능해.", type: "error" });
+      showModal({
+        title: t("member:mypage.modal.uploadFailTitle"),
+        message: t("member:mypage.modal.uploadOnlyImage"),
+        type: "error",
+      });
       return;
     }
 
     if (file.size > 3 * 1024 * 1024) {
-      showModal({ title: "업로드 실패", message: "3MB 이하로 올려줘.", type: "error" });
+      showModal({
+        title: t("member:mypage.modal.uploadFailTitle"),
+        message: t("member:mypage.modal.uploadMaxSize"),
+        type: "error",
+      });
       return;
     }
 
+    setRevertToDefault(false);
     setProfileFile(file);
 
-    if (profilePreview) URL.revokeObjectURL(profilePreview);
+    // 이전 preview revoke
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+
     const url = URL.createObjectURL(file);
+    previewRef.current = url;
     setProfilePreview(url);
   };
 
   const clearPickedProfile = () => {
-    if (profilePreview) URL.revokeObjectURL(profilePreview);
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = "";
     setProfilePreview("");
     setProfileFile(null);
+    setRevertToDefault(false);
+  };
+
+  const handleRevertDefault = () => {
+    // 기본 이미지로 되돌리기: 파일/프리뷰 제거 + revert 플래그 ON
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = "";
+    setProfilePreview("");
+    setProfileFile(null);
+    setRevertToDefault(true);
   };
 
   useEffect(() => {
     return () => {
-      if (profilePreview) URL.revokeObjectURL(profilePreview);
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = "";
     };
-  }, [profilePreview]);
+  }, []);
 
   // ✅ 업로드 API 호출: 응답키가 url/profileImageUrl 둘 다 가능하게
   const uploadProfileImage = async (file) => {
@@ -341,7 +404,7 @@ export default function MyPage() {
 
     const url = res.data?.url ?? res.data?.profileImageUrl ?? res.data?.data?.url;
     if (!url) throw new Error("NO_PROFILE_URL");
-    return url;
+    return url; // 상대경로("/uploads/...")든 절대경로든 OK
   };
 
   const handleSubmit = async (e) => {
@@ -350,8 +413,8 @@ export default function MyPage() {
 
     if (editForm.loginPw && editForm.loginPw !== editForm.loginPwConfirm) {
       showModal({
-        title: t("mypage.modal.inputErrorTitle"),
-        message: t("mypage.errors.passwordNotMatch"),
+        title: t("member:mypage.modal.inputErrorTitle"),
+        message: t("member:mypage.errors.passwordMismatch"),
         type: "warning",
       });
       return;
@@ -359,8 +422,8 @@ export default function MyPage() {
 
     if (editForm.email !== (data.member.email || "") && !isEmailVerified) {
       showModal({
-        title: t("mypage.modal.verifyNeededTitle"),
-        message: t("mypage.errors.emailVerifyRequired"),
+        title: t("member:mypage.modal.verifyNeededTitle"),
+        message: t("member:mypage.errors.emailVerifyRequired"),
         type: "warning",
       });
       return;
@@ -368,8 +431,8 @@ export default function MyPage() {
 
     if (!isNicknameChecked && editForm.nickname !== (data.member.nickname || "")) {
       showModal({
-        title: t("mypage.modal.inputErrorTitle"),
-        message: t("mypage.errors.nicknameCheckRequired"),
+        title: t("member:mypage.modal.inputErrorTitle"),
+        message: t("member:mypage.errors.nicknameCheckRequired"),
         type: "warning",
       });
       return;
@@ -377,52 +440,104 @@ export default function MyPage() {
 
     if (editForm.nickname !== (data.member.nickname || "") && !data.nicknameChangeAllowed) {
       showModal({
-        title: t("mypage.modal.inputErrorTitle"),
-        message: `${t("mypage.nicknameLimit")}\n${t("mypage.nextChangeDate")}: ${data.nextNicknameChangeDate}`,
+        title: t("member:mypage.modal.inputErrorTitle"),
+        message: `${t("member:mypage.nicknameLimit")}\n${t("member:mypage.nextChangeDate")}: ${
+          data.nextNicknameChangeDate
+        }`,
         type: "warning",
       });
       return;
     }
 
     try {
-      // ✅ 파일 선택했으면 업로드 -> url 받기
-      let profileImageUrl = data.member.profileImageUrl || "";
-      if (profileFile) {
+      // 1) 파일 업로드(선택 시) / 기본 이미지로 되돌리기
+      let profileImageUrl = data.member.profileImageUrl ?? null;
+
+      if (revertToDefault) {
+        profileImageUrl = null;
+      } else if (profileFile) {
         profileImageUrl = await uploadProfileImage(profileFile);
       }
 
+      // 2) 업데이트 payload 만들기 (countryId 빈 값 방어)
+      const nextCountryId =
+        editForm.countryId === "" || editForm.countryId == null ? null : Number(editForm.countryId);
+
       const updateData = {
-        ...data.member,
-        email: editForm.email,
-        nickname: editForm.nickname,
-        countryId: Number(editForm.countryId),
+        id: data.member.id,
+        email: editForm.email.trim(),
+        nickname: editForm.nickname.trim(),
+        countryId: nextCountryId,
         profileImageUrl,
+        resetProfileImage: revertToDefault,
       };
       if (editForm.loginPw) updateData.loginPw = editForm.loginPw;
 
+      // 3) 수정 요청
       await api.put(`/members/modify/${data.member.id}`, updateData);
 
+      // ✅ 서버가 mypage를 늦게 갱신해도 화면 즉시 반영
+      setData((prev) => {
+        if (!prev?.member) return prev;
+        return {
+          ...prev,
+          member: {
+            ...prev.member,
+            ...updateData,
+          },
+        };
+      });
+
       showModal({
-        title: t("mypage.modal.updatedTitle"),
-        message: t("mypage.modal.updatedMsg"),
+        title: t("member:mypage.modal.updatedTitle"),
+        message: t("member:mypage.modal.updatedMsg"),
         type: "success",
       });
 
       setIsEditing(false);
       clearPickedProfile();
+      setRevertToDefault(false);
 
-      // ✅ 캐시 방지 bust 갱신 후 재조회
+      // 이미지 캐시 무력화
       setProfileBust(String(Date.now()));
+
+      // 4) 최종 동기화
       await fetchData();
     } catch (e2) {
       console.error(e2);
       showModal({
-        title: t("mypage.modal.updateFailTitle"),
-        message: e2.response?.data?.message || t("mypage.errors.updateFail"),
+        title: t("member:mypage.modal.updateFailTitle"),
+        message: e2.response?.data?.message || t("member:mypage.errors.updateFail"),
         type: "error",
       });
     }
   };
+
+  // ✅ Hook은 return보다 위에서 항상 호출되게!
+  const memberProfileUrl = data?.member?.profileImageUrl;
+  const displayProfileSrc = useMemo(() => {
+    if (profilePreview) return profilePreview;
+    if (revertToDefault) return defaultAvatar;
+    return resolveProfileSrc(memberProfileUrl, profileBust);
+  }, [profilePreview, revertToDefault, memberProfileUrl, profileBust]);
+
+  const editPreviewSrc = useMemo(() => {
+    if (profilePreview) return profilePreview;
+    if (revertToDefault) return defaultAvatar;
+    return resolveProfileSrc(data?.member?.profileImageUrl, profileBust);
+  }, [profilePreview, revertToDefault, data?.member?.profileImageUrl, profileBust]);
+
+  // ✅ country 번역 키가 없으면 서버 countryName으로 폴백 (defaultValue 없이 처리)
+  const countryLabel = useCallback(
+    (c) => {
+      const key = `member:country.${c.id}`;
+      const translated = t(key);
+      // i18next는 키가 없으면 보통 key 문자열 그대로 반환
+      if (!translated || translated === key) return c.countryName;
+      return translated;
+    },
+    [t]
+  );
 
   if (authLoading || (loading && isAuthed)) {
     return (
@@ -446,30 +561,31 @@ export default function MyPage() {
   }, [profilePreview, member.profileImageUrl, profileBust]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] py-12 px-6 text-[var(--text)]">
+    <div className="min-h-screen bg-[var(--bg)] py-12 px-6 text-[color:var(--text)]">
       <div className="max-w-5xl mx-auto space-y-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-black text-slate-100 tracking-tight">
-            {t("mypage.title")}
+          {/* ✅ text-slate-100 → var(--text-strong) */}
+          <h1 className="text-4xl font-black text-[color:var(--text-strong)] tracking-tight">
+            {t("member:mypage.title")}
           </h1>
 
           <div className="flex items-center gap-3">
             <button
               onClick={handleLinkManager}
-              className="px-8 py-4 rounded-2xl font-black transition-all shadow-xl bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)]"
+              className="px-8 py-4 rounded-2xl font-black transition-all shadow-xl bg-[var(--surface)] border border-[var(--border)] text-[color:var(--text)] hover:bg-[var(--surface-soft)]"
             >
-              매니저 연동
+              {t("member:mypage.modal.linkTitle")}
             </button>
 
             <button
               onClick={handleEditToggle}
               className={`px-8 py-4 rounded-2xl font-black transition-all shadow-xl ${
                 isEditing
-                  ? "bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)]"
+                  ? "bg-[var(--surface)] border border-[var(--border)] text-[color:var(--text)] hover:bg-[var(--surface-soft)]"
                   : "bg-indigo-600 text-white hover:bg-indigo-700"
               }`}
             >
-              {isEditing ? t("mypage.cancelEdit") : t("mypage.editProfile")}
+              {isEditing ? t("member:mypage.cancelEdit") : t("member:mypage.editProfile")}
             </button>
           </div>
         </div>
@@ -482,34 +598,36 @@ export default function MyPage() {
                 alt="profile"
                 className="w-full h-full object-cover -rotate-3"
                 onError={(e) => {
-                  // 무한루프 방지: 이미 default면 더 안 바꿈
-                  if (e.currentTarget.src !== defaultAvatar) e.currentTarget.src = defaultAvatar;
+                  console.error("[PROFILE_IMG_ERROR]", e.currentTarget.src);
+                  e.currentTarget.src = defaultAvatar;
                 }}
               />
             </div>
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-wrap items-center gap-4 justify-center md:justify-start mb-4">
-                <h2 className="text-4xl font-black text-slate-100">{member.name}</h2>
+                {/* ✅ text-slate-100 → var(--text-strong) */}
+                <h2 className="text-4xl font-black text-[color:var(--text-strong)]">{member.name}</h2>
                 <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-black rounded-full border border-indigo-100 uppercase tracking-widest">
                   {member.role}
                 </span>
               </div>
 
-              <p className="text-xl font-bold text-slate-300 mb-6">{member.email}</p>
+              {/* ✅ text-slate-300 → var(--muted) or var(--text) (메일은 읽기 좋게 text) */}
+              <p className="text-xl font-bold text-[color:var(--text)] mb-6">{member.email}</p>
 
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                <div className="px-5 py-2 bg-[var(--surface-soft)] rounded-2xl text-sm font-black text-slate-200 border border-[var(--border)]">
-                  {t("mypage.labels.id")}: {member.loginId}
+                <div className="px-5 py-2 bg-[var(--surface-soft)] rounded-2xl text-sm font-black text-[color:var(--text)] border border-[var(--border)]">
+                  {t("member:mypage.labels.id")}: {member.loginId}
                 </div>
 
-                <div className="px-5 py-2 bg-[var(--surface-soft)] rounded-2xl text-sm font-black text-slate-200 border border-[var(--border)]">
-                  {t("mypage.labels.joined")}: {member.regDate?.split("T")[0]}
+                <div className="px-5 py-2 bg-[var(--surface-soft)] rounded-2xl text-sm font-black text-[color:var(--text)] border border-[var(--border)]">
+                  {t("member:mypage.labels.joined")}: {formatDateTimeMinute(member.regDate)}
                 </div>
 
                 {member.nickname && (
-                  <div className="px-5 py-2 bg-emerald-500/10 rounded-2xl text-sm font-black text-emerald-300 border border-emerald-500/30">
-                    {t("mypage.labels.nickname")}: {member.nickname}
+                  <div className="px-5 py-2 bg-emerald-500/10 rounded-2xl text-sm font-black text-[color:var(--text)] border border-emerald-500/30">
+                    {t("member:mypage.labels.nickname")}: {member.nickname}
                   </div>
                 )}
               </div>
@@ -524,50 +642,63 @@ export default function MyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* ✅ 프로필 사진 변경 UI */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                    프로필 사진
+                  <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                    {t("member:mypage.profile.label")}
                   </label>
 
                   <div className="flex items-center gap-6">
                     <div className="w-24 h-24 rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface-soft)]">
                       <img
-                        src={
-                          profilePreview ||
-                          resolveProfileSrc(member.profileImageUrl, profileBust) ||
-                          defaultAvatar
-                        }
+                        src={editPreviewSrc}
                         alt="profile preview"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          if (e.currentTarget.src !== defaultAvatar) e.currentTarget.src = defaultAvatar;
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = defaultAvatar;
                         }}
                       />
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePickProfile}
-                        className="block text-sm font-bold text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:text-white file:font-black hover:file:bg-indigo-700"
+                      <FilePicker
+                        onPick={handlePickProfile}
+                        label={t("member:mypage.profile.pickFile")}
+                        emptyLabel={t("member:mypage.profile.noFile")}
                       />
 
-                      {(profilePreview || member.profileImageUrl) && (
+                      <div className="flex gap-2 flex-wrap">
+                        {(profilePreview || member.profileImageUrl || revertToDefault) && (
+                          <button
+                            type="button"
+                            onClick={clearPickedProfile}
+                            className="px-4 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[color:var(--text)] hover:bg-[var(--surface-soft)] font-black"
+                          >
+                            {t("member:mypage.profile.pickCancel")}
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          onClick={clearPickedProfile}
-                          className="px-4 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-slate-200 hover:bg-[var(--surface-soft)] font-black"
+                          onClick={handleRevertDefault}
+                          className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-black border border-slate-700"
                         >
-                          선택 취소
+                          {t("member:mypage.profile.revertDefault")}
                         </button>
-                      )}
+                      </div>
 
-                      <p className="text-xs font-bold text-slate-400">
-                        * 저장을 눌러야 실제로 반영돼.
+                      <p className="text-xs font-bold text-[var(--muted)]">
+                        {t("member:mypage.profile.hintApplyOnSave")}
                       </p>
-                      <p className="text-[11px] font-bold text-slate-500">
-                        * 현재 저장된 URL: {member.profileImageUrl || "(없음)"}
+
+                      <p className="text-[11px] font-bold text-[var(--muted)]">
+                        {t("member:mypage.profile.currentUrl")}: {member.profileImageUrl ?? t("member:mypage.profile.none")}
                       </p>
+
+                      {revertToDefault && (
+                        <p className="text-[11px] font-black text-amber-300">
+                          {t("member:mypage.profile.willRevertDefault")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -575,43 +706,39 @@ export default function MyPage() {
                 {!member.provider && (
                   <>
                     <div>
-                      <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                        {t("mypage.form.newPassword")}
+                      <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                        {t("member:mypage.form.newPassword")}
                       </label>
                       <input
                         type="password"
                         name="loginPw"
                         value={editForm.loginPw}
                         onChange={handleInputChange}
-                        placeholder={t("mypage.form.passwordPlaceholder")}
-                        className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
+                        placeholder={t("member:mypage.form.passwordPlaceholder")}
+                        className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                        {t("mypage.form.passwordConfirm")}
+                      <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                        {t("member:mypage.form.passwordConfirm")}
                       </label>
                       <input
                         type="password"
                         name="loginPwConfirm"
                         value={editForm.loginPwConfirm}
                         onChange={handleInputChange}
-                        placeholder={t("mypage.form.passwordConfirmPlaceholder")}
-                        className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
+                        placeholder={t("member:mypage.form.passwordConfirmPlaceholder")}
+                        className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)]"
                       />
-                      {pwMsg.text && (
-                        <p className={`text-xs ml-2 mt-2 font-black ${pwMsg.color}`}>
-                          {pwMsg.text}
-                        </p>
-                      )}
+                      {pwMsg.text && <p className={`text-xs ml-2 mt-2 font-black ${pwMsg.color}`}>{pwMsg.text}</p>}
                     </div>
                   </>
                 )}
 
                 <div>
-                  <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                    {t("mypage.form.email")}
+                  <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                    {t("member:mypage.form.email")}
                   </label>
 
                   <div className="flex gap-3">
@@ -620,7 +747,7 @@ export default function MyPage() {
                       name="email"
                       value={editForm.email}
                       onChange={handleInputChange}
-                      className="flex-1 px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
+                      className="flex-1 px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)]"
                     />
 
                     {editForm.email !== data.member.email && !isEmailVerified && (
@@ -630,7 +757,7 @@ export default function MyPage() {
                         disabled={isSendingCode}
                         className="px-6 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 disabled:opacity-50 transition-all shadow-lg"
                       >
-                        {isSendingCode ? t("mypage.email.sending") : t("mypage.email.sendCode")}
+                        {isSendingCode ? t("member:mypage.email.sending") : t("member:mypage.email.sendCode")}
                       </button>
                     )}
                   </div>
@@ -639,10 +766,10 @@ export default function MyPage() {
                     <div className="flex gap-3 mt-3 animate-slide-in-bottom">
                       <input
                         type="text"
-                        placeholder={t("mypage.email.codePlaceholder")}
+                        placeholder={t("member:mypage.email.codePlaceholder")}
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value)}
-                        className="flex-1 px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
+                        className="flex-1 px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)]"
                       />
                       <button
                         type="button"
@@ -650,41 +777,37 @@ export default function MyPage() {
                         disabled={isVerifyingCode}
                         className="px-6 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg"
                       >
-                        {isVerifyingCode ? t("mypage.email.verifying") : t("mypage.email.verify")}
+                        {isVerifyingCode ? t("member:mypage.email.verifying") : t("member:mypage.email.verify")}
                       </button>
                     </div>
                   )}
 
-                  {emailMsg.text && (
-                    <p className={`text-xs ml-2 mt-2 font-black ${emailMsg.color}`}>
-                      {emailMsg.text}
-                    </p>
-                  )}
+                  {emailMsg.text && <p className={`text-xs ml-2 mt-2 font-black ${emailMsg.color}`}>{emailMsg.text}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                    {t("mypage.form.country")}
+                  <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                    {t("member:mypage.form.country")}
                   </label>
 
                   <select
                     name="countryId"
                     value={editForm.countryId}
                     onChange={handleInputChange}
-                    className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100 appearance-none"
+                    className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)] appearance-none"
                   >
-                    <option value="">{t("mypage.form.countrySelect")}</option>
+                    <option value="">{t("member:mypage.form.countrySelect")}</option>
                     {countries.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {t(`country.${c.id}`, { defaultValue: c.countryName })}
+                        {countryLabel(c)}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-black text-slate-200 mb-2 ml-1">
-                    {t("mypage.form.nickname")}
+                  <label className="block text-sm font-black text-[color:var(--text)] mb-2 ml-1">
+                    {t("member:mypage.form.nickname")}
                   </label>
 
                   <input
@@ -693,17 +816,15 @@ export default function MyPage() {
                     value={editForm.nickname}
                     onChange={handleInputChange}
                     onBlur={handleNicknameBlur}
-                    className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-slate-100"
+                    className="w-full px-6 py-4 bg-[var(--surface-soft)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--surface)] outline-none transition-all font-bold text-[color:var(--text)]"
                   />
 
                   {nicknameMsg.text && (
-                    <p className={`text-xs ml-2 mt-2 font-black ${nicknameMsg.color}`}>
-                      {nicknameMsg.text}
-                    </p>
+                    <p className={`text-xs ml-2 mt-2 font-black ${nicknameMsg.color}`}>{nicknameMsg.text}</p>
                   )}
 
                   {!data.nicknameChangeAllowed && (
-                    <div className="mt-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-black text-rose-300 flex items-center gap-3">
+                    <div className="mt-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-black text-[color:var(--text)] flex items-center gap-3">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
@@ -712,7 +833,7 @@ export default function MyPage() {
                           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      {t("mypage.nicknameLimit")} ({t("mypage.nextChangeDate")}: {data.nextNicknameChangeDate})
+                      {t("member:mypage.nicknameLimit")} ({t("member:mypage.nextChangeDate")}: {data.nextNicknameChangeDate})
                     </div>
                   )}
                 </div>
@@ -723,7 +844,7 @@ export default function MyPage() {
                   type="submit"
                   className="px-12 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95"
                 >
-                  {t("mypage.saveChanges")}
+                  {t("member:mypage.saveChanges")}
                 </button>
               </div>
             </form>
@@ -732,19 +853,19 @@ export default function MyPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
-            { label: t("mypage.stats.articles"), value: stats?.articleCount ?? 0, icon: "POST" },
-            { label: t("mypage.stats.comments"), value: stats?.commentCount ?? 0, icon: "CMT" },
-            { label: t("mypage.stats.likes"), value: stats?.likeCount ?? 0, icon: "LIKE" },
+            { label: t("member:mypage.stats.articles"), value: stats?.articleCount ?? 0, icon: "POST" },
+            { label: t("member:mypage.stats.comments"), value: stats?.commentCount ?? 0, icon: "CMT" },
+            { label: t("member:mypage.stats.likes"), value: stats?.likeCount ?? 0, icon: "LIKE" },
           ].map((stat, i) => (
             <div
               key={i}
               className="glass rounded-[2.5rem] p-8 text-center border-[var(--border)] shadow-xl hover:shadow-[0_16px_35px_rgba(59,130,246,0.2)] transition-all group"
             >
               <div className="text-3xl mb-3">{stat.icon}</div>
-              <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-[var(--accent)] transition-colors">
+              <div className="text-xs font-black text-[var(--muted)] uppercase tracking-widest mb-1 group-hover:text-[var(--accent)] transition-colors">
                 {stat.label}
               </div>
-              <div className="text-4xl font-black text-slate-100">{stat.value}</div>
+              <div className="text-4xl font-black text-[color:var(--text-strong)]">{stat.value}</div>
             </div>
           ))}
         </div>
@@ -752,9 +873,9 @@ export default function MyPage() {
         <div className="glass rounded-[3rem] overflow-hidden border-[var(--border)] shadow-2xl">
           <div className="flex border-b border-[var(--border)] bg-[var(--surface-soft)]">
             {[
-              { id: "articles", label: t("mypage.tabs.articles") },
-              { id: "comments", label: t("mypage.tabs.comments") },
-              { id: "likes", label: t("mypage.tabs.likes") },
+              { id: "articles", label: t("member:mypage.tabs.articles") },
+              { id: "comments", label: t("member:mypage.tabs.comments") },
+              { id: "likes", label: t("member:mypage.tabs.likes") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -762,7 +883,7 @@ export default function MyPage() {
                 className={`flex-1 py-6 text-sm font-black transition-all uppercase tracking-widest ${
                   activeTab === tab.id
                     ? "text-[var(--accent)] bg-[var(--surface)] border-b-4 border-[var(--accent)]"
-                    : "text-slate-300 hover:text-slate-100 hover:bg-[var(--surface)]/60"
+                    : "text-[var(--muted)] hover:text-[color:var(--text)] hover:bg-[var(--surface)]/60"
                 }`}
               >
                 {tab.label}
@@ -774,8 +895,8 @@ export default function MyPage() {
             {activeTab === "articles" && (
               <div className="space-y-4">
                 {myArticles.length === 0 ? (
-                  <div className="py-20 text-center text-slate-400 font-black italic">
-                    {t("mypage.empty.articles")}
+                  <div className="py-20 text-center text-[var(--muted)] font-black italic">
+                    {t("member:mypage.empty.articles")}
                   </div>
                 ) : (
                   myArticles.map((a) => (
@@ -785,20 +906,24 @@ export default function MyPage() {
                       className="p-6 rounded-3xl hover:bg-[rgba(59,130,246,0.12)] cursor-pointer transition-all border border-transparent hover:border-[rgba(59,130,246,0.3)] group flex items-center justify-between"
                     >
                       <div>
-                        <div className="text-lg font-black text-slate-100 group-hover:text-[var(--accent)] transition-colors">
+                        <div className="text-lg font-black text-[color:var(--text-strong)] group-hover:text-[var(--accent)] transition-colors">
                           {a.title}
                         </div>
-                        <div className="text-xs font-bold text-slate-300 mt-2 flex items-center gap-4">
+                        <div className="text-xs font-bold text-[var(--muted)] mt-2 flex items-center gap-4">
                           <span>
-                            {t("mypage.labels.writtenAt")} {a.regDate?.split("T")[0]}
+                            {t("member:mypage.labels.writtenAt")} {formatDateTimeMinute(a.regDate)}
                           </span>
                           <span>
-                            {t("mypage.labels.views")} {a.hitCount || 0}
+                            {t("member:mypage.labels.views")} {a.hitCount || 0}
                           </span>
                         </div>
                       </div>
-                      <svg className="w-5 h-5 text-slate-300 group-hover:text-[var(--accent)] transition-all transform group-hover:translate-x-1"
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg
+                        className="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--accent)] transition-all transform group-hover:translate-x-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
@@ -810,8 +935,8 @@ export default function MyPage() {
             {activeTab === "comments" && (
               <div className="space-y-4">
                 {myComments.length === 0 ? (
-                  <div className="py-20 text-center text-slate-400 font-black italic">
-                    {t("mypage.empty.comments")}
+                  <div className="py-20 text-center text-[var(--muted)] font-black italic">
+                    {t("member:mypage.empty.comments")}
                   </div>
                 ) : (
                   myComments.map((c) => (
@@ -820,11 +945,11 @@ export default function MyPage() {
                       onClick={() => c.relTypeCode === "article" && nav(`/board/${c.relId}`)}
                       className="p-6 rounded-3xl hover:bg-[rgba(59,130,246,0.12)] cursor-pointer transition-all border border-transparent hover:border-[rgba(59,130,246,0.3)] group"
                     >
-                      <div className="text-base font-bold text-slate-200 line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
+                      <div className="text-base font-bold text-[color:var(--text)] line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
                         "{c.content}"
                       </div>
-                      <div className="text-xs font-bold text-slate-400 mt-3">
-                        {t("mypage.labels.writtenAt")} {c.updateDate}
+                      <div className="text-xs font-bold text-[var(--muted)] mt-3">
+                        {t("member:mypage.labels.writtenAt")} {formatDateTimeMinute(c.updateDate)}
                       </div>
                     </div>
                   ))
@@ -835,8 +960,8 @@ export default function MyPage() {
             {activeTab === "likes" && (
               <div className="space-y-4">
                 {likedArticles.length === 0 ? (
-                  <div className="py-20 text-center text-slate-400 font-black italic">
-                    {t("mypage.empty.likes")}
+                  <div className="py-20 text-center text-[var(--muted)] font-black italic">
+                    {t("member:mypage.empty.likes")}
                   </div>
                 ) : (
                   likedArticles.map((a) => (
@@ -846,20 +971,24 @@ export default function MyPage() {
                       className="p-6 rounded-3xl hover:bg-[rgba(59,130,246,0.12)] cursor-pointer transition-all border border-transparent hover:border-[rgba(59,130,246,0.3)] group flex items-center justify-between"
                     >
                       <div>
-                        <div className="text-lg font-black text-slate-100 group-hover:text-[var(--accent)] transition-colors">
+                        <div className="text-lg font-black text-[color:var(--text-strong)] group-hover:text-[var(--accent)] transition-colors">
                           {a.title}
                         </div>
-                        <div className="text-xs font-bold text-slate-300 mt-2 flex items-center gap-4">
+                        <div className="text-xs font-bold text-[var(--muted)] mt-2 flex items-center gap-4">
                           <span>
-                            {t("mypage.labels.writer")} {a.writerName}
+                            {t("member:mypage.labels.writer")} {a.writerName}
                           </span>
                           <span>
-                            {t("mypage.labels.writtenAt")} {a.regDate?.split("T")[0]}
+                            {t("member:mypage.labels.writtenAt")} {formatDateTimeMinute(a.regDate)}
                           </span>
                         </div>
                       </div>
-                      <svg className="w-5 h-5 text-slate-300 group-hover:text-[var(--accent)] transition-all transform group-hover:translate-x-1"
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg
+                        className="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--accent)] transition-all transform group-hover:translate-x-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
