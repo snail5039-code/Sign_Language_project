@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
@@ -1003,4 +1003,3 @@ export default function MyPage() {
     </div>
   );
 }
-  
