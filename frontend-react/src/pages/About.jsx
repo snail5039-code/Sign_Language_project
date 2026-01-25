@@ -221,7 +221,7 @@ export default function About() {
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
           현재 버전은 1.0버전으로 마우수, 키보드, 프레젠테이션, 키보드 모드를 사용할 수 있습니다. 추가적으로 RUSH 게임 등이 있습니다.
         </p>
-
+   
         <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
           <div className="text-[11px] tracking-wide text-[var(--muted)]">권장</div>
           <div className="mt-1 text-sm text-[color:var(--text)]">
