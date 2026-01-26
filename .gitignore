@@ -118,3 +118,6 @@ ai-server/artifacts/
 data/
 HELP.md
 .ipynb_checkpoints/
+
+backend-spring/uploads/
+backend-spring/uploads/**/*.png
