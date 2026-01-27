@@ -71,7 +71,6 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico").permitAll()
 
-
                         // ✅ auth 관련: 필요한 것만 permitAll
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
@@ -99,12 +98,13 @@ public class SecurityConfig {
                 // ✅✅✅ 핵심: /oauth2/** 추가
                 .requestMatchers("/oauth2/**", "/oauth/**", "/login/oauth2/**", "/login**").permitAll()
 
+                // ✅ (추가) 백엔드 /bridge 쓰는 경우 401 방지
+                .requestMatchers("/bridge").permitAll()
+
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth -> oauth.successHandler(oAuth2SuccessHandler));
 
         return http.build();
     }
-
-
 }

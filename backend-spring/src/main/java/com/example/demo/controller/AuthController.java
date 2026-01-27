@@ -6,9 +6,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,7 +21,6 @@ import com.example.demo.service.MemberService;
 import com.example.demo.token.JwtTokenProvider;
 import com.example.demo.token.RefreshToken;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 @CrossOrigin(origins = { "http://localhost:5173", "http://localhost:5174" }, allowCredentials = "true")
@@ -42,9 +43,7 @@ public class AuthController {
         this.authBridgeService = authBridgeService;
     }
 
-    // ---------------------------
-    // 기존: refreshToken 쿠키로 accessToken 재발급
-    // ---------------------------
+    // refreshToken 쿠키로 accessToken 재발급
     @PostMapping("/api/auth/token")
     public Map<String, Object> issueAccessToken(
             @CookieValue(value = "refreshToken", required = false) String refreshToken) {
@@ -85,19 +84,11 @@ public class AuthController {
             refreshTokenDao.deleteByToken(refreshToken);
         }
 
-        Cookie cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        // 쿠키 제거
+        clearRefreshCookie(response);
     }
 
-    // ---------------------------
-    // 신규: 웹 -> 매니저 자동연동 브릿지
-    // ---------------------------
-
-    // 1) 웹(로그인된 상태)에서 1회용 code 발급
+    // 1) 매니저(로그인된 상태)에서 1회용 code 발급 (Authorization: Bearer <accessToken>)
     @PostMapping("/api/auth/bridge/start")
     public Map<String, Object> bridgeStart(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -118,7 +109,7 @@ public class AuthController {
         }
     }
 
-    // 2) 매니저가 code 소비 -> 서버가 refreshToken 쿠키 세팅 + accessToken 발급
+    // 2) code 소비 -> 서버가 refreshToken 쿠키 세팅 + accessToken 발급
     @PostMapping("/api/auth/bridge/consume")
     public Map<String, Object> bridgeConsume(
             @RequestBody Map<String, String> body,
@@ -146,13 +137,43 @@ public class AuthController {
                 "name", m.getName());
     }
 
+    // (옵션) 백엔드에서 바로 쿠키 세팅 후 "/"로 리다이렉트 (필요하면 사용)
+    @GetMapping("/bridge")
+    public void bridgeRedirect(
+            @RequestParam(value = "code", required = false) String code,
+            HttpServletResponse response) {
+
+        if (code == null || code.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "code is required");
+        }
+
+        Integer memberId = authBridgeService.consume(code);
+
+        RefreshToken saved = refreshTokenDao.findByMemberId(memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token not found"));
+
+        setRefreshCookie(response, saved.getToken());
+
+        try {
+            response.sendRedirect("/");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "redirect failed");
+        }
+    }
+
     private static void setRefreshCookie(HttpServletResponse response, String refreshToken) {
-        Cookie cookie = new Cookie("refreshToken", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // 개발환경
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24 * 7);
-        response.addCookie(cookie);
+        // 로컬 개발에선 SameSite=Lax + withCredentials + proxy 구성이 제일 안정적
+        String cookie = "refreshToken=" + refreshToken
+                + "; Path=/"
+                + "; HttpOnly"
+                + "; Max-Age=" + (60 * 60 * 24 * 7)
+                + "; SameSite=Lax";
+        response.addHeader("Set-Cookie", cookie);
+    }
+
+    private static void clearRefreshCookie(HttpServletResponse response) {
+        String cookie = "refreshToken=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+        response.addHeader("Set-Cookie", cookie);
     }
 
     private static String extractBearer(String authHeader) {
