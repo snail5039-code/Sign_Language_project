@@ -75,7 +75,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/bridge/consume").permitAll()
-
+                        .requestMatchers(HttpMethod.POST, "/api/auth/bridge/start").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/boards/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/boards/**").permitAll()
