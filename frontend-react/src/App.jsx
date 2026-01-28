@@ -55,7 +55,10 @@ export default function App() {
       <Route path="/logout" element={<Logout />} />
       <Route path="/findLoginId" element={<FindLoginId />} />
       <Route path="/findLoginPw" element={<FindLoginPw />} />
+      {/* OAuth2 callback (backend redirects here with ?accessToken=...) */}
       <Route path="/oauth2/success" element={<OAuth2Redirect />} />
+      {/* 예전 버튼/링크 호환 */}
+      <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
 
       <Route path="*" element={<div>페이지가 없습니다</div>} />
     </Routes>

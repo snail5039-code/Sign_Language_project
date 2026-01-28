@@ -42,8 +42,8 @@ export default function AuthProvider({ children }) {
     (t) => {
       const v = String(t || "");
 
-      tokenRef.current = v;     // ✅ 즉시 반영
-      setTokenState(v);         // UI 반영
+      tokenRef.current = v; // ✅ 즉시 반영
+      setTokenState(v); // UI 반영
 
       if (v) localStorage.setItem("accessToken", v);
       else localStorage.removeItem("accessToken");
@@ -65,7 +65,11 @@ export default function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.post("/auth/logout", null, { withCredentials: true });
+      await api.post("/auth/logout", null, {
+        withCredentials: true,
+        // 혹시라도 logout 요청이 401일 때 refresh 재시도 루프 방지(추가 안전장치)
+        _skipAuthRefresh: true,
+      });
     } catch (e) {
       console.warn("logout api failed", e);
     } finally {
@@ -85,11 +89,12 @@ export default function AuthProvider({ children }) {
     const detach = attachInterceptors(getToken, logout, {
       debug: true, // 확인 끝나면 false로
       logoutOn401: true,
+      setToken, // ✅ 중요: refresh 성공 시 여기로 토큰 반영
       // /members/me는 로그인 직후 최초 조회라 401이면 logout이 과하게 동작할 수 있어서 제외해둠
-      ignore401Paths: ["/auth/logout", "/auth/refresh", "/members/me"],
+      ignore401Paths: ["/auth/logout", "/auth/refresh", "/auth/token", "/members/me"],
     });
     return detach;
-  }, [getToken, logout]);
+  }, [getToken, logout, setToken]);
 
   // ✅ 앱 시작 시: 토큰 있으면 내 정보 로딩
   useEffect(() => {
@@ -120,6 +125,7 @@ export default function AuthProvider({ children }) {
 
       const res = await api.get("/members/me", {
         headers: { Authorization: `Bearer ${String(t || "")}` },
+        _skipAuthRefresh: true, // 여기서 401이면 refresh보단 실패로 처리(UX 단순화)
       });
 
       setUser(res.data.user);

@@ -222,23 +222,23 @@ export default function Home() {
     const th = typeof window !== "undefined" ? detectTheme() : "dark";
     return th === "dark"
       ? {
-          "--hero-img-opacity": 0.34,
-          "--hero-img-scale": 1.02,
-          "--hero-img-filter": "saturate(1.10) contrast(1.08)",
-          "--hero-scrim-0": "rgba(7, 12, 24, 0.56)",
-          "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
-          "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
-          "--hero-object-pos": "72% 50%"
-        }
+        "--hero-img-opacity": 0.34,
+        "--hero-img-scale": 1.02,
+        "--hero-img-filter": "saturate(1.10) contrast(1.08)",
+        "--hero-scrim-0": "rgba(7, 12, 24, 0.56)",
+        "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
+        "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
+        "--hero-object-pos": "72% 50%"
+      }
       : {
-          "--hero-img-opacity": 0.22,
-          "--hero-img-scale": 1.01,
-          "--hero-img-filter": "saturate(1.05) contrast(1.05)",
-          "--hero-scrim-0": "rgba(255, 255, 255, 0.72)",
-          "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
-          "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
-          "--hero-object-pos": "78% 50%"
-        };
+        "--hero-img-opacity": 0.22,
+        "--hero-img-scale": 1.01,
+        "--hero-img-filter": "saturate(1.05) contrast(1.05)",
+        "--hero-scrim-0": "rgba(255, 255, 255, 0.72)",
+        "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
+        "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
+        "--hero-object-pos": "78% 50%"
+      };
   });
 
   useEffect(() => {
@@ -248,23 +248,23 @@ export default function Home() {
       setHeroVars(
         th === "dark"
           ? {
-              "--hero-img-opacity": 0.34,
-              "--hero-img-scale": 1.02,
-              "--hero-img-filter": "saturate(1.10) contrast(1.08)",
-              "--hero-scrim-0": "rgba(7, 12, 24, 0.56)",
-              "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
-              "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
-              "--hero-object-pos": "72% 50%"
-            }
+            "--hero-img-opacity": 0.34,
+            "--hero-img-scale": 1.02,
+            "--hero-img-filter": "saturate(1.10) contrast(1.08)",
+            "--hero-scrim-0": "rgba(7, 12, 24, 0.56)",
+            "--hero-scrim-1": "rgba(7, 12, 24, 0.18)",
+            "--hero-scrim-2": "rgba(7, 12, 24, 0.06)",
+            "--hero-object-pos": "72% 50%"
+          }
           : {
-              "--hero-img-opacity": 0.22,
-              "--hero-img-scale": 1.01,
-              "--hero-img-filter": "saturate(1.05) contrast(1.05)",
-              "--hero-scrim-0": "rgba(255, 255, 255, 0.72)",
-              "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
-              "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
-              "--hero-object-pos": "78% 50%"
-            }
+            "--hero-img-opacity": 0.22,
+            "--hero-img-scale": 1.01,
+            "--hero-img-filter": "saturate(1.05) contrast(1.05)",
+            "--hero-scrim-0": "rgba(255, 255, 255, 0.72)",
+            "--hero-scrim-1": "rgba(255, 255, 255, 0.18)",
+            "--hero-scrim-2": "rgba(255, 255, 255, 0.06)",
+            "--hero-object-pos": "78% 50%"
+          }
       );
     };
 
@@ -397,6 +397,21 @@ export default function Home() {
                   <ChipLink onClick={goQna}>{tf("hero.pills.2", "QnA")}</ChipLink>
                   <ChipLink onClick={goUpdates}>{tf("hero.pills.3", "Updates")}</ChipLink>
                 </div>
+                {/* ✅ 필독 안내 */}
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[rgba(6,12,26,0.28)] px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 inline-flex items-center rounded-full bg-[var(--accent)]/15 px-2.5 py-1 text-[11px] font-extrabold text-[color:var(--text)]">
+                      {tf("hero.notice.title", "필독")}
+                    </div>
+                    <div className="text-xs leading-relaxed text-[var(--muted)]">
+                      {tf(
+                        "hero.notice.body",
+                        "현재 버전에서는 PPT 모드 활성/비활성을 모션으로 변경할 수 없습니다."
+                      )}
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* CTA 버튼 */}
                 <div className="mt-6 flex flex-wrap gap-2">
